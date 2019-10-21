@@ -8,13 +8,16 @@ import numpy as np
 from vidgear.gears import CamGear
 
 sys.path.insert(1, os.getcwd())
-
 from SimpleHRNet import SimpleHRNet
 from misc.visualization import draw_points, draw_skeleton, draw_points_and_skeleton, joints_dict
 
 
+
+
 def main(camera_id, filename, hrnet_c, hrnet_j, hrnet_weights, hrnet_joints_set, image_resolution, single_person,
-         max_batch_size, disable_vidgear, device, save_root, save_dir):
+         max_batch_size, disable_vidgear, device, save_root):
+
+#def main():
     if device is not None:
         device = torch.device(device)
     else:
@@ -25,11 +28,10 @@ def main(camera_id, filename, hrnet_c, hrnet_j, hrnet_weights, hrnet_joints_set,
             device = torch.device('cpu')
 
     print(device)
-
+    print('max_batch_size',max_batch_size)
     image_resolution = ast.literal_eval(image_resolution)
     has_display = 'DISPLAY' in os.environ.keys() or sys.platform == 'win32'
     has_display = False
-
     if filename is not None:
         video = cv2.VideoCapture(filename)
         assert video.isOpened()
@@ -38,6 +40,7 @@ def main(camera_id, filename, hrnet_c, hrnet_j, hrnet_weights, hrnet_joints_set,
             video = cv2.VideoCapture(camera_id)
             assert video.isOpened()
         else:
+            print('debug')
             video = CamGear(camera_id).start()
 
     model = SimpleHRNet(
@@ -49,17 +52,16 @@ def main(camera_id, filename, hrnet_c, hrnet_j, hrnet_weights, hrnet_joints_set,
         max_batch_size=max_batch_size,
         device=device
     )
-
-    num_of_std = 0
     num_of_frame = 0
+    num_of_std = 0
     start = False
-    root = os.path.join(save_root, 'test_v1')
+    flag = False
+    root = os.path.join(save_root, 'sit_ups_v3')
 
     if not os.path.exists(root):
         os.mkdir(root)
 
     while True:
-
         if filename is not None or disable_vidgear:
             ret, frame = video.read()
             if not ret:
@@ -70,21 +72,31 @@ def main(camera_id, filename, hrnet_c, hrnet_j, hrnet_weights, hrnet_joints_set,
                 break
 
         pts = model.predict(frame)
-        if len(pts) == 0:
-            continue
 
         for i, pt in enumerate(pts):
             frame = draw_points_and_skeleton(frame, pt, joints_dict()[hrnet_joints_set]['skeleton'], person_index=i,
                                              points_color_palette='gist_rainbow', skeleton_color_palette='jet',
                                              points_palette_samples=10)
 
-
-        print('num of frame', num_of_frame)
+        # if not start:
+        #     #print('pts', pts)
+        #     angel = cal_angle(pts, 'start')
+        #     start = True if angel <= 20 else False
 
         if not start:
-            print('pts', pts)
-            angel = cal_angle(pts)
-            start = True if angel >= 150 else False
+            #text_ready = 'please ready'
+            #cv2.putText(frame, text_ready, (50,50), cv2.FONT_HERSHEY_PLAIN, 2.0, (0, 0, 255), 2)
+            angel = cal_angle(pts, 'start')
+            start = True if angel <= 5 else False
+
+        # if start:
+        #     #text_elbow_touch_knee = 'please elbow touch knee'
+        #     cv2.putText(frame, text_elbow_touch_knee, (50, 50), cv2.FONT_HERSHEY_PLAIN, 2.0, (0, 0, 255), 2)
+
+
+
+
+
         if has_display:
             cv2.imshow('frame.png', frame)
             k = cv2.waitKey(1)
@@ -95,93 +107,108 @@ def main(camera_id, filename, hrnet_c, hrnet_j, hrnet_weights, hrnet_joints_set,
                     video.stop()
                 break
         else:
-            left_ear_height = pts[0][3][0]  # pts -> (y,x ,conf)
-            right_ear_height = pts[0][4][0]
-            avg_ear_height = (left_ear_height + right_ear_height) / 2
+            angle  = cal_angle(pts, 'stardard')
+            if angle <= 50 and start:
+                text = "count_{}".format(num_of_std)
+                count(frame, text , num_of_frame, root, video)
 
-            left_writst_height = pts[0][9][0]
-            right_writst_height = pts[0][10][0]
-            avg_wrist_height = (left_writst_height + right_writst_height) / 2
+                start = False
+                num_of_std += 1
+                flag = True
 
-            left_shoulder_height = pts[0][5][0]
-            right_shoulder_height = pts[0][6][0]
-            avg_shoulder_height = (left_shoulder_height + right_shoulder_height) / 2
-
-            if avg_ear_height < avg_wrist_height:
-                ear_wrist_diff = avg_wrist_height - avg_ear_height
-                wrist_shoulder_diff = avg_shoulder_height - avg_wrist_height
-
-                ratio = ear_wrist_diff / wrist_shoulder_diff
-
-                if 0.5 <= ratio <= 2 and start:
-                    text = "count:{}".format(num_of_std)
-                    num_of_std+=1
-                    count(frame, text, num_of_frame, root, video)
-                    start = False
-                else:
-                    text = "count:{}".format(num_of_std)
-                    count(frame, text, num_of_frame, root, video)
+            elif angle <= 50 and not start and not flag:
+                print('True')
+                text_error = 'fault wrong hands action'
+                cv2.putText(frame, text_error, (330, 50), cv2.FONT_HERSHEY_PLAIN, 2.0, (0, 0, 255), 2)
+                text = "count_{}".format(num_of_std)
+                count(frame, text, num_of_frame, root, video)
+                #print(type(frame))
             else:
-                text = "count:{}".format(num_of_std)
+                text = "count_{}".format(num_of_std)
                 count(frame, text, num_of_frame, root, video)
 
 
-
+        #print('num_of_frame', num_of_frame)
+        #print('pts', pts)
         num_of_frame += 1
+
 
 def count(frame, text, num_of_frame, root, video):
     shape = frame.shape
     height = shape[0]
     width = shape[1]
-    print(height)
     cv2.putText(frame, text, (int(width / 3), int(height / 15)), cv2.FONT_HERSHEY_PLAIN, 2.0, (0, 0, 255), 2)
 
-    cv2.imshow('frame.png', frame)
-    k = cv2.waitKey(1)
-    if k == 27:  # Esc button
-        if False:
-            video.release()
-        else:
-            video.stop()
-        os._exit()
+    # cv2.imshow('frame.png', frame)
+    # k = cv2.waitKey(1)
+    # if k == 27:  # Esc button
+    #     if False:
+    #         video.release()
+    #     else:
+    #         video.stop()
+    #     os._exit()
 
+    #return frame
     cv2.imwrite(root + '/frames_{:0>4}.png'.format(num_of_frame), frame)
 
-def cal_angle(pts):
 
-    left_writst_y = pts[0][9][0]
-    left_writst_x = pts[0][9][1]
-    right_writst_y = pts[0][10][0]
-    right_writst_x = pts[0][10][1]
+def cal_angle(pts, flag):
+    left_knee_y = pts[0][13][0]
+    left_knee_x = pts[0][13][1]
 
+    right_knee_y = pts[0][14][0]
+    right_knee_x = pts[0][14][1]
+    knee_y = max(left_knee_y, right_knee_y)
+    knee_x = max(left_knee_x, right_knee_x)
+
+    left_hip_y = pts[0][11][0]
+    left_hip_x = pts[0][11][1]
+
+    right_hip_y = pts[0][12][0]
+    right_hip_x = pts[0][12][1]
+    hip_y = max(left_hip_y, right_hip_y)
+    hip_x = max(left_hip_x, right_hip_x)
 
     left_shoulder_y = pts[0][5][0]
     left_shoulder_x = pts[0][5][1]
+
     right_shoulder_y = pts[0][6][0]
     right_shoulder_x = pts[0][6][1]
+    shoulder_y = max(left_shoulder_y, right_shoulder_y)
+    shoulder_x = max(left_shoulder_x, right_shoulder_x)
 
-    left_elblow_y = pts[0][7][0]
-    left_elblow_x = pts[0][7][1]
-    right_elblow_y = pts[0][8][0]
-    right_elblow_x = pts[0][8][1]
+    if flag == 'start':
+        mid_point_x  = shoulder_x
+        mid_point_y  = hip_y
+        vec_hip_to_mid = np.array((hip_x - mid_point_x, hip_y - mid_point_y))
+        vec_hip_to_shoulder = np.array((hip_x - shoulder_x, hip_y - shoulder_y))
 
-    if left_writst_y >= left_shoulder_y or right_writst_y >= right_shoulder_y:
-        return 0
+        L_hip_to_mid = np.sqrt(vec_hip_to_mid.dot(vec_hip_to_mid))
+        L_hip_to_shoulder = np.sqrt(vec_hip_to_shoulder.dot(vec_hip_to_shoulder))
 
-    vec_elbow_to_shoulder = np.array((left_elblow_x - left_shoulder_x, left_elblow_y - left_shoulder_y))
-    vec_elbow_to_wrist = np.array((left_elblow_x - left_writst_x, left_elblow_y - left_writst_y))
+        cos_angle = vec_hip_to_mid.dot(vec_hip_to_shoulder) / (L_hip_to_mid * L_hip_to_shoulder)
 
-    L_elbow_to_shoulder = np.sqrt(vec_elbow_to_shoulder.dot(vec_elbow_to_shoulder))
-    L_elbow_to_wrist = np.sqrt(vec_elbow_to_wrist.dot(vec_elbow_to_wrist))
+        angle_rad = np.arccos(cos_angle)
+        angle = angle_rad * 360 / 2 / np.pi
+        #print(angle)
+        return angle
 
-    cos_angle = vec_elbow_to_shoulder.dot(vec_elbow_to_wrist) / (L_elbow_to_shoulder * L_elbow_to_wrist)
+    elif flag == 'stardard':
+        vec_hip_to_knee = np.array((hip_x - knee_x, hip_y - knee_y))
+        vec_hip_to_shoulder = np.array((hip_x - shoulder_x, hip_y - shoulder_y))
 
-    print(cos_angle)
-    angle = np.arccos(cos_angle)
-    angle2 = angle * 360 / 2 / np.pi
-    print(angle2)
-    #start = True if angle2 >= 150 else False
-    return angle2
+        L_hip_to_knee = np.sqrt(vec_hip_to_knee.dot(vec_hip_to_knee))
+        L_hip_to_shoulder = np.sqrt(vec_hip_to_shoulder.dot(vec_hip_to_shoulder))
+
+        cos_angle = vec_hip_to_shoulder.dot(vec_hip_to_knee) / (L_hip_to_shoulder * L_hip_to_knee)
+
+        angle_rad = np.arccos(cos_angle)
+
+        angle = angle_rad * 360 / 2 / np.pi
+        #print(angle)
+
+        return angle
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -191,7 +218,7 @@ if __name__ == '__main__':
     parser.add_argument("--hrnet_c", "-c", help="hrnet parameters - number of channels", type=int, default=48)
     parser.add_argument("--hrnet_j", "-j", help="hrnet parameters - number of joints", type=int, default=17)
     parser.add_argument("--hrnet_weights", "-w", help="hrnet parameters - path to the pretrained weights",
-                        type=str, default="./weights/pose_hrnet_w48_384x288.pth")
+                        type=str, default="/mnt/simple-HRNet/pretrain_models/pytorch/pose_coco/pose_hrnet_w48_384x288.pth")
     parser.add_argument("--hrnet_joints_set",
                         help="use the specified set of joints ('coco' and 'mpii' are currently supported)",
                         type=str, default="coco")
@@ -200,12 +227,11 @@ if __name__ == '__main__':
                         help="disable the multiperson detection (YOLOv3 or an equivalen detector is required for"
                              "multiperson detection)",
                         action="store_true")
-    parser.add_argument("--max_batch_size", help="maximum batch size used for inference", type=int, default=16)
+    parser.add_argument("--max_batch_size", help="maximum batch size used for inference", type=int, default=1)
     parser.add_argument("--disable_vidgear",
                         help="disable vidgear (which is used for slightly better realtime performance)",
                         action="store_true")  # see https://pypi.org/project/vidgear/
     parser.add_argument("--device", help="device to be used (default: cuda, if available)", type=str, default=None)
     parser.add_argument("--save_root", "-s", help="the path to save", type=str, default='/mnt/simple-HRNet/frames')
-    parser.add_argument("--save_dir", help="the dir to save", type=str)
     args = parser.parse_args()
     main(**args.__dict__)
