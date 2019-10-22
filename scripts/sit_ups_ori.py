@@ -56,7 +56,7 @@ def main(camera_id, filename, hrnet_c, hrnet_j, hrnet_weights, hrnet_joints_set,
     num_of_std = 0
     start = False
     flag = False
-    root = os.path.join(save_root, 'sit_ups_v3')
+    root = os.path.join(save_root, 'sit_ups_v2_add_angle_hks')
 
     if not os.path.exists(root):
         os.mkdir(root)
@@ -86,14 +86,16 @@ def main(camera_id, filename, hrnet_c, hrnet_j, hrnet_weights, hrnet_joints_set,
         if not start:
             #text_ready = 'please ready'
             #cv2.putText(frame, text_ready, (50,50), cv2.FONT_HERSHEY_PLAIN, 2.0, (0, 0, 255), 2)
-            angel = cal_angle(pts, 'start')
-            start = True if angel <= 5 else False
+            angle_stg, angle_sew, angle_ewe = cal_angle(pts, 'start')
+            if angle_stg<=5 and angle_sew <= 90: #and angle_ewe >= 90:
+                start = True
+            else:
+                start = False
+            #start = True if angel <= 5 else False
 
         # if start:
         #     #text_elbow_touch_knee = 'please elbow touch knee'
         #     cv2.putText(frame, text_elbow_touch_knee, (50, 50), cv2.FONT_HERSHEY_PLAIN, 2.0, (0, 0, 255), 2)
-
-
 
 
 
@@ -107,16 +109,17 @@ def main(camera_id, filename, hrnet_c, hrnet_j, hrnet_weights, hrnet_joints_set,
                     video.stop()
                 break
         else:
-            angle  = cal_angle(pts, 'stardard')
-            if angle <= 50 and start:
-                text = "count_{}".format(num_of_std)
-                count(frame, text , num_of_frame, root, video)
+            flag_elblow_over_knee, angle_hks  = cal_angle(pts, 'stardard')
+            # if angle_hks <= 50 and start and flag_elblow_over_knee:
+            if start and flag_elblow_over_knee:
+                if angle_hks <= 60:
+                    num_of_std += 1
+                    text = "count_{}".format(num_of_std)
+                    count(frame, text, num_of_frame, root, video)
+                    start = False
+                    flag = True
 
-                start = False
-                num_of_std += 1
-                flag = True
-
-            elif angle <= 50 and not start and not flag:
+            elif angle_hks <= 60 and not start and not flag:
                 print('True')
                 text_error = 'fault wrong hands action'
                 cv2.putText(frame, text_error, (330, 50), cv2.FONT_HERSHEY_PLAIN, 2.0, (0, 0, 255), 2)
@@ -128,8 +131,8 @@ def main(camera_id, filename, hrnet_c, hrnet_j, hrnet_weights, hrnet_joints_set,
                 count(frame, text, num_of_frame, root, video)
 
 
-        #print('num_of_frame', num_of_frame)
-        #print('pts', pts)
+        print('num_of_frame', num_of_frame)
+        print('pts', pts)
         num_of_frame += 1
 
 
@@ -152,7 +155,21 @@ def count(frame, text, num_of_frame, root, video):
     cv2.imwrite(root + '/frames_{:0>4}.png'.format(num_of_frame), frame)
 
 
+def cosine_theorem(p1, p2, p3):
+    vec_p1_to_p2  = np.array((p1[0] - p2[0], p1[1] - p2[1]))
+    vec_p1_to_p3  = np.array((p1[0] - p3[0], p1[1] - p3[1]))
+
+    L_vec_p1_to_p2 = np.sqrt(vec_p1_to_p2.dot(vec_p1_to_p2))
+    L_vec_p1_to_p3 = np.sqrt(vec_p1_to_p3.dot(vec_p1_to_p3))
+
+    cos_angle = vec_p1_to_p2.dot(vec_p1_to_p3) / ( L_vec_p1_to_p2 * L_vec_p1_to_p3)
+    angle_rad = np.arccos(cos_angle)
+    angle = angle_rad * 360 / 2 / np.pi
+
+    return  angle
+
 def cal_angle(pts, flag):
+    ## knee
     left_knee_y = pts[0][13][0]
     left_knee_x = pts[0][13][1]
 
@@ -161,6 +178,7 @@ def cal_angle(pts, flag):
     knee_y = max(left_knee_y, right_knee_y)
     knee_x = max(left_knee_x, right_knee_x)
 
+    ## hip
     left_hip_y = pts[0][11][0]
     left_hip_x = pts[0][11][1]
 
@@ -169,6 +187,7 @@ def cal_angle(pts, flag):
     hip_y = max(left_hip_y, right_hip_y)
     hip_x = max(left_hip_x, right_hip_x)
 
+    ## shoulder
     left_shoulder_y = pts[0][5][0]
     left_shoulder_x = pts[0][5][1]
 
@@ -177,37 +196,100 @@ def cal_angle(pts, flag):
     shoulder_y = max(left_shoulder_y, right_shoulder_y)
     shoulder_x = max(left_shoulder_x, right_shoulder_x)
 
+    ## elbow
+    left_elbow_y = pts[0][7][0]
+    left_elbow_x = pts[0][7][1]
+
+    right_elbow_y = pts[0][8][0]
+    right_elbow_x = pts[0][8][1]
+    elbow_y = max(left_elbow_y, right_elbow_y)
+    elbow_x = max(left_elbow_x, right_elbow_x)
+
+    ## wrist
+    left_wrist_y = pts[0][9][0]
+    left_wrist_x = pts[0][9][1]
+
+    right_wrist_y = pts[0][10][0]
+    right_wrist_x = pts[0][10][1]
+    wrist_y = max(left_wrist_y, right_wrist_y)
+    wrist_x = max(left_wrist_x, right_wrist_x)
+
+    ## ear
+    left_ear_y = pts[0][3][0]
+    left_ear_x = pts[0][3][1]
+
+    right_ear_y = pts[0][4][0]
+    right_ear_x = pts[0][4][1]
+    ear_y = max(left_ear_y, right_ear_y)
+    ear_x = max(left_ear_x, right_ear_x)
     if flag == 'start':
+
+        ## angle of shoulder touching ground
         mid_point_x  = shoulder_x
         mid_point_y  = hip_y
-        vec_hip_to_mid = np.array((hip_x - mid_point_x, hip_y - mid_point_y))
-        vec_hip_to_shoulder = np.array((hip_x - shoulder_x, hip_y - shoulder_y))
 
-        L_hip_to_mid = np.sqrt(vec_hip_to_mid.dot(vec_hip_to_mid))
-        L_hip_to_shoulder = np.sqrt(vec_hip_to_shoulder.dot(vec_hip_to_shoulder))
+        ## angle of shoudler touching ground
+        angle_stg = cosine_theorem((hip_x, hip_y), (mid_point_x, mid_point_y), (shoulder_x, shoulder_y))
 
-        cos_angle = vec_hip_to_mid.dot(vec_hip_to_shoulder) / (L_hip_to_mid * L_hip_to_shoulder)
+        ## angle of shoulder, wrist, elbow
 
-        angle_rad = np.arccos(cos_angle)
-        angle = angle_rad * 360 / 2 / np.pi
-        #print(angle)
-        return angle
+        angle_sew = cosine_theorem((elbow_x, elbow_y),(shoulder_x, shoulder_y), (wrist_x, wrist_y))
+
+        ## angle_of elbow, wrist , ear
+        angle_ewe =  cosine_theorem((wrist_x, wrist_y), (ear_x, ear_y), (elbow_x, elbow_y))
+
+
+        # vec_hip_to_mid = np.array((hip_x - mid_point_x, hip_y - mid_point_y))
+        # vec_hip_to_shoulder = np.array((hip_x - shoulder_x, hip_y - shoulder_y))
+        #
+        # L_hip_to_mid = np.sqrt(vec_hip_to_mid.dot(vec_hip_to_mid))
+        # L_hip_to_shoulder = np.sqrt(vec_hip_to_shoulder.dot(vec_hip_to_shoulder))
+        #
+        # cos_angle_stg = vec_hip_to_mid.dot(vec_hip_to_shoulder) / (L_hip_to_mid * L_hip_to_shoulder)
+        #
+        # angle_rad_stg = np.arccos(cos_angle_stg)
+        # angle_shoulder_touch_ground = angle_rad_stg * 360 / 2 / np.pi
+
+
+        ## angle of shoulder, wrist and elbow
+        # vec_elbow_to_shoulder = np.array((elbow_x - shoulder_x, elbow_y - shoulder_y))
+        # vec_elbow_to_wrist = np.array((elbow_x - wrist_x, elbow_y - wrist_y))
+        #
+        # L_elbow_to_shoulder = np.sqrt(vec_elbow_to_shoulder.dot(vec_elbow_to_shoulder))
+        # L_elbow_to_wrist = np.sqrt(vec_elbow_to_wrist.dot(vec_elbow_to_wrist))
+        #
+        # cos_angle_sew = vec_elbow_to_shoulder.dot(vec_elbow_to_wrist) / (L_elbow_to_shoulder * L_elbow_to_wrist)
+        # angle_rad_sew = np.arccos(cos_angle_sew)
+        # angle_shoulder_elbow_wirst = angle_rad_sew* 360 / 2 / np.pi
+
+        print(angle_stg ,angle_sew ,angle_ewe)
+        return angle_stg ,angle_sew ,angle_ewe
 
     elif flag == 'stardard':
-        vec_hip_to_knee = np.array((hip_x - knee_x, hip_y - knee_y))
-        vec_hip_to_shoulder = np.array((hip_x - shoulder_x, hip_y - shoulder_y))
 
-        L_hip_to_knee = np.sqrt(vec_hip_to_knee.dot(vec_hip_to_knee))
-        L_hip_to_shoulder = np.sqrt(vec_hip_to_shoulder.dot(vec_hip_to_shoulder))
+        ## angle of hip, knee ,shoulder
+        angle_hks = cosine_theorem((hip_x, hip_y), (knee_x, knee_y), (shoulder_x, shoulder_y))
 
-        cos_angle = vec_hip_to_shoulder.dot(vec_hip_to_knee) / (L_hip_to_shoulder * L_hip_to_knee)
+        L_both_knee = np.sqrt((left_knee_x - right_knee_x)**2 + (left_knee_y - right_knee_y)**2)
+        L_knee_to_elblow = np.sqrt((knee_x - elbow_x)**2 + (knee_y - elbow_y)**2)
 
-        angle_rad = np.arccos(cos_angle)
 
-        angle = angle_rad * 360 / 2 / np.pi
+        flag_elblow_over_knee = True if L_knee_to_elblow <= 2*L_both_knee else False
+
+        # vec_hip_to_knee = np.array((hip_x - knee_x, hip_y - knee_y))
+        # vec_hip_to_shoulder = np.array((hip_x - shoulder_x, hip_y - shoulder_y))
+        #
+        # L_hip_to_knee = np.sqrt(vec_hip_to_knee.dot(vec_hip_to_knee))
+        # L_hip_to_shoulder = np.sqrt(vec_hip_to_shoulder.dot(vec_hip_to_shoulder))
+        #
+        # cos_angle = vec_hip_to_shoulder.dot(vec_hip_to_knee) / (L_hip_to_shoulder * L_hip_to_knee)
+        #
+        # angle_rad = np.arccos(cos_angle)
+        #
+        # angle = angle_rad * 360 / 2 / np.pi
         #print(angle)
 
-        return angle
+        return flag_elblow_over_knee, angle_hks
 
 
 if __name__ == '__main__':
