@@ -6,7 +6,7 @@ import cv2
 import torch
 import numpy as np
 from vidgear.gears import CamGear
-
+import pandas
 sys.path.insert(1, os.getcwd())
 from SimpleHRNet import SimpleHRNet
 from misc.visualization import draw_points, draw_skeleton, draw_points_and_skeleton, joints_dict
@@ -87,7 +87,8 @@ def main(camera_id, filename, hrnet_c, hrnet_j, hrnet_weights, hrnet_joints_set,
             #text_ready = 'please ready'
             #cv2.putText(frame, text_ready, (50,50), cv2.FONT_HERSHEY_PLAIN, 2.0, (0, 0, 255), 2)
             angle_stg, angle_sew, angle_ewe = cal_angle(pts, 'start')
-            if angle_stg<=5 and angle_sew <= 90: #and angle_ewe >= 90:
+            print('angle_ewe ',angle_ewe )
+            if angle_stg<=5 and angle_sew <= 90 and angle_ewe >= 120:
                 start = True
             else:
                 start = False
@@ -109,15 +110,17 @@ def main(camera_id, filename, hrnet_c, hrnet_j, hrnet_weights, hrnet_joints_set,
                     video.stop()
                 break
         else:
-            flag_elblow_over_knee, angle_hks  = cal_angle(pts, 'stardard')
+            angle_mke, angle_hks  = cal_angle(pts, 'stardard')
+            print('angle_mke', angle_mke)
+            print('angle_hks', angle_hks)
             # if angle_hks <= 50 and start and flag_elblow_over_knee:
-            if start and flag_elblow_over_knee:
-                if angle_hks <= 60:
-                    num_of_std += 1
-                    text = "count_{}".format(num_of_std)
-                    count(frame, text, num_of_frame, root, video)
-                    start = False
-                    flag = True
+            if start and angle_mke <= 90 and angle_hks <= 50:
+
+                num_of_std += 1
+                text = "count_{}".format(num_of_std)
+                count(frame, text, num_of_frame, root, video)
+                start = False
+                flag = True
 
             elif angle_hks <= 60 and not start and not flag:
                 print('True')
@@ -132,7 +135,7 @@ def main(camera_id, filename, hrnet_c, hrnet_j, hrnet_weights, hrnet_joints_set,
 
 
         print('num_of_frame', num_of_frame)
-        print('pts', pts)
+        #print('pts', pts)
         num_of_frame += 1
 
 
@@ -162,7 +165,7 @@ def cosine_theorem(p1, p2, p3):
     L_vec_p1_to_p2 = np.sqrt(vec_p1_to_p2.dot(vec_p1_to_p2))
     L_vec_p1_to_p3 = np.sqrt(vec_p1_to_p3.dot(vec_p1_to_p3))
 
-    cos_angle = vec_p1_to_p2.dot(vec_p1_to_p3) / ( L_vec_p1_to_p2 * L_vec_p1_to_p3)
+    cos_angle = vec_p1_to_p2.dot(vec_p1_to_p3) / (L_vec_p1_to_p2 * L_vec_p1_to_p3)
     angle_rad = np.arccos(cos_angle)
     angle = angle_rad * 360 / 2 / np.pi
 
@@ -262,19 +265,33 @@ def cal_angle(pts, flag):
         # angle_rad_sew = np.arccos(cos_angle_sew)
         # angle_shoulder_elbow_wirst = angle_rad_sew* 360 / 2 / np.pi
 
-        print(angle_stg ,angle_sew ,angle_ewe)
+        #print(angle_stg ,angle_sew ,angle_ewe)
         return angle_stg ,angle_sew ,angle_ewe
 
     elif flag == 'stardard':
 
+        mid_point_x =  knee_x
+        mid_point_y = elbow_y
+        ## angle_of mid_point, knee, elblow
+
+        angle_mke = cosine_theorem((knee_x, knee_y), (mid_point_x, mid_point_y), (elbow_x, elbow_y))
+
         ## angle of hip, knee ,shoulder
         angle_hks = cosine_theorem((hip_x, hip_y), (knee_x, knee_y), (shoulder_x, shoulder_y))
+
+
+
+
+
+
 
         L_both_knee = np.sqrt((left_knee_x - right_knee_x)**2 + (left_knee_y - right_knee_y)**2)
         L_knee_to_elblow = np.sqrt((knee_x - elbow_x)**2 + (knee_y - elbow_y)**2)
 
 
-        flag_elblow_over_knee = True if L_knee_to_elblow <= 2*L_both_knee else False
+        flag_elblow_over_knee = True if L_knee_to_elblow <= 2.5*L_both_knee else False
+
+
 
         # vec_hip_to_knee = np.array((hip_x - knee_x, hip_y - knee_y))
         # vec_hip_to_shoulder = np.array((hip_x - shoulder_x, hip_y - shoulder_y))
@@ -289,7 +306,7 @@ def cal_angle(pts, flag):
         # angle = angle_rad * 360 / 2 / np.pi
         #print(angle)
 
-        return flag_elblow_over_knee, angle_hks
+        return angle_mke, angle_hks
 
 
 if __name__ == '__main__':
