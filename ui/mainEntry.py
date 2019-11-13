@@ -138,7 +138,10 @@ class PyQtMainEntry(QMainWindow, Ui_Mainwindow, sitUps):
         dialog.exec_()
 
     def getArgs(self):
-        args.stg = int(self.arg1.text())
+        args.stg = int(self.lineEdit.text())
+        print(type(self.lineEdit_2.text()))
+        args.sew = int(self.lineEdit_2.text())
+
 
     @QtCore.pyqtSlot()
     def _queryFrame(self):
@@ -158,14 +161,18 @@ class childWindow(QtWidgets.QDialog, Ui_Dialog):
         #super().__init__()
         QtWidgets.QDialog.__init__(self)
         self.args = args
-        self.child=Ui_Dialog()
-        self.child.setupUi(self)
+        self.setupUi(self)
+        # self.child=Ui_Dialog()
+        # self.child.setupUi(self)
 
     def getArgs(self):
 
-        args.stg = int(self.child.lineEdit.text())
-
-        print(args.stg)
+        args.stg = int(self.lineEdit.text())
+        args.sew = int(self.lineEdit_2.text())
+        print(type(args.stg))
+        print(type(args.sew))
+        print('stg',args.stg)
+        print('sew',args.sew)
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     args = parse_opts()
