@@ -84,26 +84,24 @@ class sitUps(object):
             print('hks',args.hks)
             print('raise_feet', args.raise_feet)
             print('ratio_distance',args.ratio_distance)
-            ratio_between_distance, angle_hks, angle_hma_standard, x_diff_elbow_knee, avg_conf = self.cal_angle(pts,
-                                                                                                                'stardard',
-                                                                                                                args)
+
+
             if not start:
                 if self.cal_angle(pts, 'start', args) == "nobody":
+                    yield (' ', ' ', self.frame, self.num_of_std)
                     continue
                 #self.text_ready = '请双肩着地，双手抱头'
-                angle_stg, angle_sew, angle_hma_start = self.cal_angle(pts, 'start',args)
+                angle_stg, angle_sew, angle_hma_start, avg_conf = self.cal_angle(pts, 'start',args)
                 if angle_stg <= args.stg and angle_sew <= args.sew and angle_hma_start <= 10:
                     start = True
                 else:
                     start = False
                 self.state_box_text = '完整动作规范' if avg_conf > 0.5 else ' '
-
             elif start:
                 self.text_elbow_touch_knee = '开始手部动作规范'
                 self.state_box_text = self.text_elbow_touch_knee
 
-
-            #ratio_between_distance, angle_hks, angle_hma_standard, x_diff_elbow_knee, avg_conf= self.cal_angle(pts, 'stardard',args)
+            ratio_between_distance, angle_hks, angle_hma_standard, x_diff_elbow_knee, avg_conf= self.cal_angle(pts, 'stardard',args)
 
             if avg_conf < 0.2:
                 start = False
@@ -288,7 +286,9 @@ class sitUps(object):
                 angle_hma_start = self.cosine_theorem((ankle_x, ankle_y), (hip_x, hip_y),
                                                  (mid_point_ankle_hip_x, mid_point_ankle_hip_y))
 
-                return angle_stg, angle_sew, angle_hma_start
+                avg_conf = (left_ankle_conf + right_ankle_conf) / 2
+
+                return angle_stg, angle_sew, angle_hma_start, avg_conf
 
             elif flag == 'stardard':
 
