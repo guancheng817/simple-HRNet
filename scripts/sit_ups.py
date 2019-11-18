@@ -10,35 +10,7 @@ from vidgear.gears import CamGear
 sys.path.insert(1, os.getcwd())
 from SimpleHRNet import SimpleHRNet
 from misc.visualization import draw_points, draw_skeleton, draw_points_and_skeleton, joints_dict
-
-# parser = argparse.ArgumentParser()
-# parser.add_argument("--camera_id", "-d", help="open the camera with the specified id", type=int, default=0)
-# parser.add_argument("--filename", "-f", help="open the specified video (overrides the --camera_id option)",
-#                     type=str, default=None)
-# parser.add_argument("--hrnet_c", "-c", help="hrnet parameters - number of channels", type=int, default=48)
-# parser.add_argument("--hrnet_j", "-j", help="hrnet parameters - number of joints", type=int, default=17)
-# parser.add_argument("--hrnet_weights", "-w", help="hrnet parameters - path to the pretrained weights",
-#                     type=str, default="/mnt/simple-HRNet/pretrain_models/pytorch/pose_coco/pose_hrnet_w48_384x288.pth")
-# parser.add_argument("--hrnet_joints_set",
-#                     help="use the specified set of joints ('coco' and 'mpii' are currently supported)",
-#                     type=str, default="coco")
-# parser.add_argument("--image_resolution", "-r", help="image resolution", type=str, default='(384, 288)')
-# parser.add_argument("--single_person",
-#                     help="disable the multiperson detection (YOLOv3 or an equivalen detector is required for"
-#                          "multiperson detection)",
-#                     action="store_true")
-# parser.add_argument("--max_batch_size", help="maximum batch size used for inference", type=int, default=16)
-# parser.add_argument("--disable_vidgear",
-#                     help="disable vidgear (which is used for slightly better realtime performance)",
-#                     action="store_true")  # see https://pypi.org/project/vidgear/
-# parser.add_argument("--device", help="device to be used (default: cuda, if available)", type=str, default=None)
-# parser.add_argument("--save_root", "-s", help="the path to save", type=str, default='/mnt/simple-HRNet/frames')
-# args = parser.parse_args()
-
-
-
-# def main(camera_id, filename, hrnet_c, hrnet_j, hrnet_weights, hrnet_joints_set, image_resolution, single_person,
-#          max_batch_size, disable_vidgear, device, save_root):
+import time
 
 class sitUps(object):
     # def __init__(self):
@@ -76,8 +48,7 @@ class sitUps(object):
             args.hrnet_j,
             args.hrnet_weights,
             resolution=image_resolution,
-            #multiperson=not args.single_person,
-            multiperson= False,
+            multiperson=not args.single_person,
             max_batch_size=args.max_batch_size,
             device=device
         )
@@ -108,48 +79,65 @@ class sitUps(object):
                                                  points_color_palette='gist_rainbow', skeleton_color_palette='jet',
                                                  points_palette_samples=10)
 
+            print('stg',args.stg)
+            print('sew', args.sew)
+            print('hks',args.hks)
+            print('raise_feet', args.raise_feet)
+            print('ratio_distance',args.ratio_distance)
+            ratio_between_distance, angle_hks, angle_hma_standard, x_diff_elbow_knee, avg_conf = self.cal_angle(pts,
+                                                                                                                'stardard',
+                                                                                                                args)
             if not start:
-                self.text_ready = 'please ready'
-                angel = self.cal_angle(pts, 'start')
-                start = True if angel <= 5 else False
-                self.state_box_text = self.text_ready
+                if self.cal_angle(pts, 'start', args) == "nobody":
+                    continue
+                #self.text_ready = '请双肩着地，双手抱头'
+                angle_stg, angle_sew, angle_hma_start = self.cal_angle(pts, 'start',args)
+                if angle_stg <= args.stg and angle_sew <= args.sew and angle_hma_start <= 10:
+                    start = True
+                else:
+                    start = False
+                self.state_box_text = '完整动作规范' if avg_conf > 0.5 else ' '
 
             elif start:
-                self.text_elbow_touch_knee = 'please elbow touch knee'
+                self.text_elbow_touch_knee = '开始手部动作规范'
                 self.state_box_text = self.text_elbow_touch_knee
 
-            if has_display:
-                cv2.imshow('frame.png', self.frame)
-                k = cv2.waitKey(1)
-                if k == 27:  # Esc button
-                    if args.disable_vidgear:
-                        video.release()
-                    else:
-                        video.stop()
-                    break
-            else:
-                angle  = self.cal_angle(pts, 'stardard')
-                if angle <= 50 and start:
-                    self.text = "count_{}".format(self.num_of_std)
-                    self.frame = self.count(self.frame, self.text , num_of_frame, root, video)
-                    self.num_of_std += 1
-                    #print(type(frame))
 
-                    start = False
-                    flag = True
-                elif angle <= 50 and not start and not flag:
+            #ratio_between_distance, angle_hks, angle_hma_standard, x_diff_elbow_knee, avg_conf= self.cal_angle(pts, 'stardard',args)
 
-                    self.text_error = 'fault wrong hands action'
-                    self.error_box_text = self.text_error
+            if avg_conf < 0.2:
+                start = False
+                self.text = "count_{}".format(self.num_of_std)
+                self.frame = self.count(self.frame , self.text, num_of_frame, root, video)
+                self.error_box_text = '部分关键点未检测到'
+                self.state_box_text = ' '
+                yield (self.state_box_text, self.error_box_text, self.frame, self.num_of_std)
+                continue
 
-                else:
-                    self.text = "count_{}".format(self.num_of_std)
-                    self.frame = self.count(self.frame, self.text, num_of_frame, root, video)
+            raise_feet = False if np.absolute(angle_hma_start - angle_hma_standard) <= args.raise_feet else True
+            if angle_hks <= args.hks and start and (ratio_between_distance or x_diff_elbow_knee < 0) and not raise_feet:
+                self.text = "count_{}".format(self.num_of_std)
+                self.frame = self.count(self.frame, self.text , num_of_frame, root, video)
+                self.num_of_std += 1
+                self.state_box_text = '完整动作规范'
+                self.error_box_text = ' '
+                start = False
+                flag = True
+            elif angle_hks <= args.hks and (ratio_between_distance or x_diff_elbow_knee < 0) and not raise_feet and not start and not flag:
+                self.text_error = '犯规，开始动作不规范'
+                self.error_box_text = self.text_error
+                self.text = "count_{}".format(self.num_of_std)
+                self.frame = self.count(self.frame, self.text, num_of_frame, root, video)
+            elif start and not raise_feet:
+                self.text_error = '请双肘触膝盖'
+                self.error_box_text = self.text_error
+                self.text = "count_{}".format(self.num_of_std)
+                self.frame = self.count(self.frame, self.text, num_of_frame, root, video)
 
             yield (self.state_box_text, self.error_box_text, self.frame, self.num_of_std)
-
-            self.error_box_text = ' '
+            #self.error_box_text = ' '
             num_of_frame += 1
+
 
 
     def count(self, frame, text, num_of_frame, root, video):
@@ -166,94 +154,177 @@ class sitUps(object):
         #     else:
         #         video.stop()
         #     os._exit()
-        #cv2.imwrite(root + '/frames_{:0>4}.png'.format(num_of_frame), frame)
+        # cv2.imwrite(root + '/frames_{:0>4}.png'.format(num_of_frame), frame)
         return frame
 
 
         #
 
+    def cosine_theorem(self, p1, p2, p3):
+        vec_p1_to_p2 = np.array((p1[0] - p2[0], p1[1] - p2[1]))
+        vec_p1_to_p3 = np.array((p1[0] - p3[0], p1[1] - p3[1]))
 
-    def cal_angle(self, pts, flag):
-        left_knee_y = pts[0][13][0]
-        left_knee_x = pts[0][13][1]
+        L_vec_p1_to_p2 = np.sqrt(vec_p1_to_p2.dot(vec_p1_to_p2))
+        L_vec_p1_to_p3 = np.sqrt(vec_p1_to_p3.dot(vec_p1_to_p3))
 
-        right_knee_y = pts[0][14][0]
-        right_knee_x = pts[0][14][1]
-        knee_y = max(left_knee_y, right_knee_y)
-        knee_x = max(left_knee_x, right_knee_x)
+        cos_angle = vec_p1_to_p2.dot(vec_p1_to_p3) / (L_vec_p1_to_p2 * L_vec_p1_to_p3)
+        angle_rad = np.arccos(cos_angle)
+        angle = angle_rad * 360 / 2 / np.pi
 
-        left_hip_y = pts[0][11][0]
-        left_hip_x = pts[0][11][1]
+        return angle
 
-        right_hip_y = pts[0][12][0]
-        right_hip_x = pts[0][12][1]
-        hip_y = max(left_hip_y, right_hip_y)
-        hip_x = max(left_hip_x, right_hip_x)
+    def x_distance(self, p1, p2):
+        return np.absolute(p1 - p2)
 
-        left_shoulder_y = pts[0][5][0]
-        left_shoulder_x = pts[0][5][1]
+    def cal_angle(self, pts, flag, args):
+        try:
 
-        right_shoulder_y = pts[0][6][0]
-        right_shoulder_x = pts[0][6][1]
-        shoulder_y = max(left_shoulder_y, right_shoulder_y)
-        shoulder_x = max(left_shoulder_x, right_shoulder_x)
+            ## knee
+            left_knee_y = pts[0][13][0]
+            left_knee_x = pts[0][13][1]
+            left_knee_conf = pts[0][13][2]
 
-        if flag == 'start':
-            mid_point_x  = shoulder_x
-            mid_point_y  = hip_y
-            vec_hip_to_mid = np.array((hip_x - mid_point_x, hip_y - mid_point_y))
-            vec_hip_to_shoulder = np.array((hip_x - shoulder_x, hip_y - shoulder_y))
+            right_knee_y = pts[0][14][0]
+            right_knee_x = pts[0][14][1]
+            right_knee_conf = pts[0][14][2]
 
-            L_hip_to_mid = np.sqrt(vec_hip_to_mid.dot(vec_hip_to_mid))
-            L_hip_to_shoulder = np.sqrt(vec_hip_to_shoulder.dot(vec_hip_to_shoulder))
+            knee_y = max(left_knee_y, right_knee_y)
+            # knee_x = max(left_knee_x, right_knee_x)
 
-            cos_angle = vec_hip_to_mid.dot(vec_hip_to_shoulder) / (L_hip_to_mid * L_hip_to_shoulder)
+            knee_x = (left_knee_x + right_knee_x) / 2
 
-            angle_rad = np.arccos(cos_angle)
-            angle = angle_rad * 360 / 2 / np.pi
-            #print(angle)
-            return angle
+            ## hip
+            left_hip_y = pts[0][11][0]
+            left_hip_x = pts[0][11][1]
 
-        elif flag == 'stardard':
-            vec_hip_to_knee = np.array((hip_x - knee_x, hip_y - knee_y))
-            vec_hip_to_shoulder = np.array((hip_x - shoulder_x, hip_y - shoulder_y))
+            right_hip_y = pts[0][12][0]
+            right_hip_x = pts[0][12][1]
+            hip_y = max(left_hip_y, right_hip_y)
+            hip_x = max(left_hip_x, right_hip_x)
 
-            L_hip_to_knee = np.sqrt(vec_hip_to_knee.dot(vec_hip_to_knee))
-            L_hip_to_shoulder = np.sqrt(vec_hip_to_shoulder.dot(vec_hip_to_shoulder))
+            # hip_y = (left_hip_y + right_hip_y) / 2
+            # hip_x = (left_hip_x + right_hip_x) / 2
 
-            cos_angle = vec_hip_to_shoulder.dot(vec_hip_to_knee) / (L_hip_to_shoulder * L_hip_to_knee)
+            ## shoulder
+            left_shoulder_y = pts[0][5][0]
+            left_shoulder_x = pts[0][5][1]
 
-            angle_rad = np.arccos(cos_angle)
+            right_shoulder_y = pts[0][6][0]
+            right_shoulder_x = pts[0][6][1]
+            shoulder_y = max(left_shoulder_y, right_shoulder_y)
+            shoulder_x = max(left_shoulder_x, right_shoulder_x)
 
-            angle = angle_rad * 360 / 2 / np.pi
-            #print(angle)
+            # shoulder_y = (left_shoulder_y + right_shoulder_y)/ 2
+            # shoulder_x = (left_shoulder_x + right_shoulder_x)/ 2
 
-            return angle
+            ## elbow
+            left_elbow_y = pts[0][7][0]
+            left_elbow_x = pts[0][7][1]
 
-#main(args)
+            right_elbow_y = pts[0][8][0]
+            right_elbow_x = pts[0][8][1]
 
-# if __name__ == '__main__':
-#     parser = argparse.ArgumentParser()
-#     parser.add_argument("--camera_id", "-d", help="open the camera with the specified id", type=int, default=0)
-#     parser.add_argument("--filename", "-f", help="open the specified video (overrides the --camera_id option)",
-#                         type=str, default=None)
-#     parser.add_argument("--hrnet_c", "-c", help="hrnet parameters - number of channels", type=int, default=48)
-#     parser.add_argument("--hrnet_j", "-j", help="hrnet parameters - number of joints", type=int, default=17)
-#     parser.add_argument("--hrnet_weights", "-w", help="hrnet parameters - path to the pretrained weights",
-#                         type=str, default="/mnt/simple-HRNet/pretrain_models/pytorch/pose_coco/pose_hrnet_w48_384x288.pth")
-#     parser.add_argument("--hrnet_joints_set",
-#                         help="use the specified set of joints ('coco' and 'mpii' are currently supported)",
-#                         type=str, default="coco")
-#     parser.add_argument("--image_resolution", "-r", help="image resolution", type=str, default='(384, 288)')
-#     parser.add_argument("--single_person",
-#                         help="disable the multiperson detection (YOLOv3 or an equivalen detector is required for"
-#                              "multiperson detection)",
-#                         action="store_true")
-#     parser.add_argument("--max_batch_size", help="maximum batch size used for inference", type=int, default=16)
-#     parser.add_argument("--disable_vidgear",
-#                         help="disable vidgear (which is used for slightly better realtime performance)",
-#                         action="store_true")  # see https://pypi.org/project/vidgear/
-#     parser.add_argument("--device", help="device to be used (default: cuda, if available)", type=str, default=None)
-#     parser.add_argument("--save_root", "-s", help="the path to save", type=str, default='/mnt/simple-HRNet/frames')
-#     args = parser.parse_args()
-#     main(**args.__dict__)
+            elbow_y = max(left_elbow_y, right_elbow_y)
+            elbow_x = min(left_elbow_x, right_elbow_x)
+
+            # elbow_y = (left_elbow_y+right_elbow_y)/ 2
+            # elbow_x = (left_elbow_x+ right_elbow_x)/ 2
+
+            ## wrist
+            left_wrist_y = pts[0][9][0]
+            left_wrist_x = pts[0][9][1]
+
+            right_wrist_y = pts[0][10][0]
+            right_wrist_x = pts[0][10][1]
+            wrist_y = max(left_wrist_y, right_wrist_y)
+            wrist_x = max(left_wrist_x, right_wrist_x)
+
+            # wrist_y = (left_wrist_y+ right_wrist_y)/ 2
+            # wrist_x = (left_wrist_x+ right_wrist_x)/ 2
+
+            ## ear
+            left_ear_y = pts[0][3][0]
+            left_ear_x = pts[0][3][1]
+
+            right_ear_y = pts[0][4][0]
+            right_ear_x = pts[0][4][1]
+            ear_y = max(left_ear_y, right_ear_y)
+            ear_x = max(left_ear_x, right_ear_x)
+            # ear_y = (left_ear_y + right_ear_y)/ 2
+            # ear_x = (left_ear_x + right_ear_x)/ 2
+
+            ## ankle
+            left_ankle_y = pts[0][15][0]
+            left_ankle_x = pts[0][15][1]
+            left_ankle_conf = pts[0][15][2]
+
+            right_ankle_y = pts[0][16][0]
+            right_ankle_x = pts[0][16][1]
+            right_ankle_conf = pts[0][16][2]
+
+            ankle_y = max(left_ankle_y, right_ankle_y)
+            # ankle_x = max(left_ankle_x, right_ankle_x)
+            ankle_x = (left_ankle_x + right_ankle_x) / 2
+            if flag == 'start':
+
+                ## angle of shoulder touching ground
+                mid_point_shoulder_hip_x = shoulder_x
+                mid_point_shoulder_hip_y = hip_y
+
+                ## angle of shoudler touching ground
+                angle_stg = self.cosine_theorem((hip_x, hip_y), (mid_point_shoulder_hip_x, mid_point_shoulder_hip_y),
+                                           (shoulder_x, shoulder_y))
+
+                ## angle of shoulder, wrist, elbow
+
+                angle_sew = self.cosine_theorem((elbow_x, elbow_y), (shoulder_x, shoulder_y), (wrist_x, wrist_y))
+
+                ## angle_of elbow, wrist , ear
+                angle_ewe = self.cosine_theorem((wrist_x, wrist_y), (ear_x, ear_y), (elbow_x, elbow_y))
+
+                ## angle of ankle, hip of start
+                mid_point_ankle_hip_x = hip_x
+                mid_point_ankle_hip_y = ankle_y
+                angle_hma_start = self.cosine_theorem((ankle_x, ankle_y), (hip_x, hip_y),
+                                                 (mid_point_ankle_hip_x, mid_point_ankle_hip_y))
+
+                return angle_stg, angle_sew, angle_hma_start
+
+            elif flag == 'stardard':
+
+                mid_point_x = knee_x
+                mid_point_y = elbow_y
+
+                ## angle of hip, knee ,shoulder
+                angle_hks = self.cosine_theorem((hip_x, hip_y), (knee_x, knee_y), (shoulder_x, shoulder_y))
+
+                ## the distance
+                x_distance_ankle_knee = self.x_distance(knee_x, ankle_x)
+                x_distance_elblow_knee = self.x_distance(elbow_x, knee_x)
+
+                if x_distance_elblow_knee <= args.ratio_distance * x_distance_ankle_knee:
+                    ratio_between_distance = True
+                else:
+                    ratio_between_distance = False
+                # print('x_distance_ankle_knee', x_distance_ankle_knee)
+                # print('x_distance_elblow_knee', x_distance_elblow_knee)
+
+                ## angle of ankle, hip of standard
+                mid_point_ankle_hip_x = hip_x
+                mid_point_ankle_hip_y = ankle_y
+                angle_hma_standard = self.cosine_theorem((ankle_x, ankle_y), (hip_x, hip_y),
+                                                    (mid_point_ankle_hip_x, mid_point_ankle_hip_y))
+
+                if hip_x > knee_x:
+                    x_diff_elbow_knee = elbow_x - knee_x
+                else:
+                    x_diff_elbow_knee = knee_x - elbow_x
+
+                ### confidence of ankle,knee
+                #avg_conf = (left_knee_conf + right_knee_x + left_ankle_conf + right_ankle_conf) / 4
+                avg_conf = (left_ankle_conf + right_ankle_conf) / 2
+                return ratio_between_distance, angle_hks, angle_hma_standard, x_diff_elbow_knee, avg_conf
+
+        except IndexError:
+            print('视频中没有人物出现，请把摄像头对准人')
+            return "nobody"
