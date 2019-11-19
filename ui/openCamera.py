@@ -46,7 +46,7 @@ class Ui_Mainwindow(object):
 
         ## show video
         self.labelCamera = QtWidgets.QLabel(self.centralwidget)
-        self.labelCamera.setGeometry(QtCore.QRect(220, 90, 471, 341))
+        self.labelCamera.setGeometry(QtCore.QRect(160, 90, 471, 341))
         self.labelCamera.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
         self.labelCamera.setWordWrap(True)
         self.labelCamera.setObjectName("labelCamera")

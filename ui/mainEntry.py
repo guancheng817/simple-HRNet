@@ -205,14 +205,19 @@ class childWindow(QtWidgets.QDialog, Ui_Dialog):
             if not self.stg.isdigit() or not self.sew.isdigit() or not self.raise_feet.isdigit() or \
                 not self.hks.isdigit() or not type(eval(self.ratio_distance)) == float:
                 QtWidgets.QMessageBox.warning(self, "警告", "出现非法字符或者未准确填写参数表", QtWidgets.QMessageBox.Cancel)
+            elif not  5<=int(self.stg)<=10 or not 90<=int(self.sew)<=100 or not 5<=int(self.raise_feet)<=10 \
+                or not 60<=int(self.hks)<=80 or not 0.2<=float(self.ratio_distance)<=0.4:
+                QtWidgets.QMessageBox.warning(self, "警告", "请准确填写参数范围", QtWidgets.QMessageBox.Cancel)
+            else:
+                args.stg = int(self.stg) if self.stg != '' else args.stg
+                args.sew = int(self.sew) if self.sew != '' else args.sew
+                args.raise_feet = int(self.raise_feet) if self.raise_feet != '' else args.raise_feet
+                args.hks = int(self.hks) if self.hks != '' else args.hks
+                args.ratio_distance = float(self.ratio_distance) if self.ratio_distance != '' else args.ratio_distance
+                QtWidgets.QMessageBox.information(self, "提示", "保存成功", QtWidgets.QMessageBox.Cancel)
         except AttributeError:
             QtWidgets.QMessageBox.warning(self, "警告", "请填写参数表", QtWidgets.QMessageBox.Cancel)
-        else:
-            args.stg = int(self.stg) if self.stg != '' else args.stg
-            args.sew = int(self.sew) if self.sew != '' else args.sew
-            args.raise_feet = int(self.raise_feet) if self.raise_feet != '' else args.raise_feet
-            args.hks = int(self.hks) if self.hks != '' else args.hks
-            args.ratio_distance = float(self.ratio_distance) if self.ratio_distance != '' else args.ratio_distance
+
 
     def cancel(self):
         self.done(0)
