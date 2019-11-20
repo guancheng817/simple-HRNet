@@ -53,11 +53,15 @@ class sitUps(object):
             device=device
         )
         num_of_frame = 0
+        arm_irregular = 0
+        feet_irregular = 0
         self.num_of_std = 0
         self.error_box_text = ' '
+        self.state_box_text = ' '
+        stg_flag = False
         start = False
-        flag = False
-        root = os.path.join(args.save_root, 'sit_ups_v3')
+        end = False
+        root = os.path.join(args.save_root, args.save_dir)
 
         if not os.path.exists(root):
             os.mkdir(root)
@@ -79,60 +83,122 @@ class sitUps(object):
                                                  points_color_palette='gist_rainbow', skeleton_color_palette='jet',
                                                  points_palette_samples=10)
 
-            print('stg',args.stg)
-            print('sew', args.sew)
-            print('hks',args.hks)
-            print('raise_feet', args.raise_feet)
-            print('ratio_distance',args.ratio_distance)
+            # print('stg',args.stg)
+            # print('sew', args.sew)
+            # print('hks',args.hks)
+            # print('raise_feet', args.raise_feet)
+            # print('ratio_distance',args.ratio_distance)
 
+            # angle_stg, angle_sew, angle_hma_start, avg_conf = self.cal_angle(pts, 'start', args)
+            # diff_two_frame_rasie_feet = angle_hma_start - first_raise_feet
+            if self.cal_angle(pts, 'start', args) == "nobody":
+                self.text = "count_{}".format(self.num_of_std)
+                self.frame = self.count(self.frame, self.text, num_of_frame, root, video)
+                num_of_frame += 1
+                yield (' ', ' ', self.frame, self.num_of_std)
+                continue
 
             if not start:
-                if self.cal_angle(pts, 'start', args) == "nobody":
-                    yield (' ', ' ', self.frame, self.num_of_std)
-                    continue
+                # if self.cal_angle(pts, 'start', args) == "nobody":
+                #     self.text = "count_{}".format(self.num_of_std)
+                #     self.frame = self.count(self.frame, self.text, num_of_frame, root, video)
+                #     num_of_frame +=1
+                #     yield (' ', ' ', self.frame, self.num_of_std)
+                #     continue
                 #self.text_ready = '请双肩着地，双手抱头'
-                angle_stg, angle_sew, angle_hma_start, avg_conf = self.cal_angle(pts, 'start',args)
-                if angle_stg <= args.stg and angle_sew <= args.sew and angle_hma_start <= 10:
+                left_angle_stg, right_angle_stg, angle_sew, angle_hma_start, avg_conf = self.cal_angle(pts, 'start',args)
+                print('left_stg',left_angle_stg)
+                print('right_stg', right_angle_stg)
+                if (left_angle_stg <= args.stg) and (right_angle_stg <= args.stg ):# and angle_sew <= args.sew and angle_hma_start <= 10:
+                    self.text_elbow_touch_knee = '双肩已着地，请双肘触膝'
+                    self.state_box_text = self.text_elbow_touch_knee
+                    stg_flag = True
                     start = True
-                else:
+                    end = False
+                # else:
+                #     start = False
+
+            #print('angle_hma_start:', angle_hma_start)
+            print('num of frame', num_of_frame)
+            print('pts',pts)
+            print(' ')
+            if not end:
+
+                left_angle_stg, right_angle_stg, angle_sew, angle_hma_start, avg_conf = self.cal_angle(pts, 'start', args)
+                if angle_sew >= args.sew and arm_irregular >=3:
+                    self.error_box_text = '手部动作不规范，请双手抱头'
+                    self.state_box_text = '动作不规范，请重新开始动作'
+                    # end = False
                     start = False
-                self.state_box_text = '完整动作规范' if avg_conf > 0.5 else ' '
-            elif start:
-                self.text_elbow_touch_knee = '开始手部动作规范'
-                self.state_box_text = self.text_elbow_touch_knee
+                    self.text = "count_{}".format(self.num_of_std)
+                    self.frame = self.count(self.frame, self.text, num_of_frame, root, video)
+                    num_of_frame += 1
+                    arm_irregular = 0
+                    feet_irregular = 0
+                    yield (self.state_box_text, self.error_box_text, self.frame, self.num_of_std)
+                    continue
+                elif angle_sew >= args.sew and arm_irregular < 3:
+                    arm_irregular+=1
+                elif angle_sew < args.sew:
+                    arm_irregular = 0
 
-            ratio_between_distance, angle_hks, angle_hma_standard, x_diff_elbow_knee, avg_conf= self.cal_angle(pts, 'stardard',args)
 
-            if avg_conf < 0.2:
+                if angle_hma_start >= args.raise_feet and feet_irregular >=5:
+                    self.error_box_text = '脚部动作不规范'
+                    self.state_box_text = '脚部不规范，请重新开始动作'
+                    start = False
+                    self.text = "count_{}".format(self.num_of_std)
+                    self.frame = self.count(self.frame, self.text, num_of_frame, root, video)
+                    num_of_frame += 1
+                    feet_irregular = 0
+                    arm_irregular = 0
+                    yield (self.state_box_text, self.error_box_text, self.frame, self.num_of_std)
+                    continue
+                elif angle_hma_start >= args.raise_feet and feet_irregular < 5:
+                    feet_irregular+=1
+                elif angle_hma_start < args.raise_feet:
+                    feet_irregular = 0
+
+            ratio_between_distance, angle_hks, angle_hma_standard, x_diff_bool, avg_conf= self.cal_angle(pts, 'stardard',args)
+            print('num of frame', num_of_frame)
+            print('pts',pts)
+            print(' ')
+
+            if avg_conf < 0.5:
                 start = False
                 self.text = "count_{}".format(self.num_of_std)
                 self.frame = self.count(self.frame , self.text, num_of_frame, root, video)
+                num_of_frame += 1
                 self.error_box_text = '部分关键点未检测到'
                 self.state_box_text = ' '
+                num_of_frame += 1
                 yield (self.state_box_text, self.error_box_text, self.frame, self.num_of_std)
                 continue
 
-            raise_feet = False if np.absolute(angle_hma_start - angle_hma_standard) <= args.raise_feet else True
-            if angle_hks <= args.hks and start and (ratio_between_distance or x_diff_elbow_knee < 0) and not raise_feet:
+            #raise_feet = False if np.absolute(angle_hma_start - angle_hma_standard) <= args.raise_feet else True
+            if angle_hks <= args.hks and start and (ratio_between_distance or x_diff_bool):
                 self.text = "count_{}".format(self.num_of_std)
                 self.frame = self.count(self.frame, self.text , num_of_frame, root, video)
                 self.num_of_std += 1
-                self.state_box_text = '完整动作规范'
+                self.state_box_text = '完整动作规范,请开始下一个动作'
                 self.error_box_text = ' '
                 start = False
-                flag = True
-            elif angle_hks <= args.hks and (ratio_between_distance or x_diff_elbow_knee < 0) and not raise_feet and not start and not flag:
-                self.text_error = '犯规，开始动作不规范'
-                self.error_box_text = self.text_error
-                self.text = "count_{}".format(self.num_of_std)
-                self.frame = self.count(self.frame, self.text, num_of_frame, root, video)
-            elif start and not raise_feet:
-                self.text_error = '请双肘触膝盖'
-                self.error_box_text = self.text_error
-                self.text = "count_{}".format(self.num_of_std)
-                self.frame = self.count(self.frame, self.text, num_of_frame, root, video)
+                end = True
+                stg_flag = False
+            # elif angle_hks <= args.hks and (ratio_between_distance or x_diff_elbow_knee < 0) and not raise_feet and not start and not end:
+            #     self.text_error = '犯规，开始动作不规范'
+            #     self.error_box_text = self.text_error
+            #     self.text = "count_{}".format(self.num_of_std)
+            #     self.frame = self.count(self.frame, self.text, num_of_frame, root, video)
+            # elif start and not raise_feet:
+            #     self.text_error = '请双肘触膝盖'
+            #     self.error_box_text = self.text_error
+            #     self.text = "count_{}".format(self.num_of_std)
+            #     self.frame = self.count(self.frame, self.text, num_of_frame, root, video)
 
             yield (self.state_box_text, self.error_box_text, self.frame, self.num_of_std)
+            self.text = "count_{}".format(self.num_of_std)
+            self.frame = self.count(self.frame, self.text, num_of_frame, root, video)
             #self.error_box_text = ' '
             num_of_frame += 1
 
@@ -152,11 +218,9 @@ class sitUps(object):
         #     else:
         #         video.stop()
         #     os._exit()
-        # cv2.imwrite(root + '/frames_{:0>4}.png'.format(num_of_frame), frame)
+        cv2.imwrite(root + '/frames_{:0>4}.png'.format(num_of_frame), frame)
         return frame
 
-
-        #
 
     def cosine_theorem(self, p1, p2, p3):
         vec_p1_to_p2 = np.array((p1[0] - p2[0], p1[1] - p2[1]))
@@ -197,36 +261,47 @@ class sitUps(object):
 
             right_hip_y = pts[0][12][0]
             right_hip_x = pts[0][12][1]
-            hip_y = max(left_hip_y, right_hip_y)
-            hip_x = max(left_hip_x, right_hip_x)
+            # hip_y = max(left_hip_y, right_hip_y)
+            # hip_x = max(left_hip_x, right_hip_x)
 
-            # hip_y = (left_hip_y + right_hip_y) / 2
-            # hip_x = (left_hip_x + right_hip_x) / 2
+            hip_y = (left_hip_y + right_hip_y) / 2
+            hip_x = (left_hip_x + right_hip_x) / 2
 
             ## shoulder
             left_shoulder_y = pts[0][5][0]
             left_shoulder_x = pts[0][5][1]
+            left_shoulder_conf = pts[0][5][2]
 
             right_shoulder_y = pts[0][6][0]
             right_shoulder_x = pts[0][6][1]
-            shoulder_y = max(left_shoulder_y, right_shoulder_y)
-            shoulder_x = max(left_shoulder_x, right_shoulder_x)
+            right_shoulder_conf = pts[0][6][2]
+            # shoulder_y = max(left_shoulder_y, right_shoulder_y)
+            # shoulder_x = max(left_shoulder_x, right_shoulder_x)
 
-            # shoulder_y = (left_shoulder_y + right_shoulder_y)/ 2
-            # shoulder_x = (left_shoulder_x + right_shoulder_x)/ 2
+            shoulder_y = (left_shoulder_y + right_shoulder_y)/ 2
+            shoulder_x = (left_shoulder_x + right_shoulder_x)/ 2
 
             ## elbow
             left_elbow_y = pts[0][7][0]
             left_elbow_x = pts[0][7][1]
+            left_elbow_conf = pts[0][7][2]
 
             right_elbow_y = pts[0][8][0]
             right_elbow_x = pts[0][8][1]
+            right_elbow_conf = pts[0][8][2]
 
-            elbow_y = max(left_elbow_y, right_elbow_y)
-            elbow_x = min(left_elbow_x, right_elbow_x)
-
-            # elbow_y = (left_elbow_y+right_elbow_y)/ 2
-            # elbow_x = (left_elbow_x+ right_elbow_x)/ 2
+            if np.absolute(left_elbow_conf - right_elbow_conf) > 0.3:
+                if left_knee_conf > right_knee_conf:
+                    elbow_y = left_elbow_y
+                    elbow_x = left_elbow_x
+                else:
+                    elbow_y = right_elbow_y
+                    elbow_x = right_elbow_x
+            else:
+                # elbow_y = max(left_elbow_y, right_elbow_y)
+                # elbow_x = min(left_elbow_x, right_elbow_x)
+                elbow_y = (left_elbow_y + right_elbow_y) / 2
+                elbow_x = (left_elbow_x + right_elbow_x) / 2
 
             ## wrist
             left_wrist_y = pts[0][9][0]
@@ -234,11 +309,11 @@ class sitUps(object):
 
             right_wrist_y = pts[0][10][0]
             right_wrist_x = pts[0][10][1]
-            wrist_y = max(left_wrist_y, right_wrist_y)
-            wrist_x = max(left_wrist_x, right_wrist_x)
+            # wrist_y = max(left_wrist_y, right_wrist_y)
+            # wrist_x = max(left_wrist_x, right_wrist_x)
 
-            # wrist_y = (left_wrist_y+ right_wrist_y)/ 2
-            # wrist_x = (left_wrist_x+ right_wrist_x)/ 2
+            wrist_y = (left_wrist_y+ right_wrist_y)/ 2
+            wrist_x = (left_wrist_x+ right_wrist_x)/ 2
 
             ## ear
             left_ear_y = pts[0][3][0]
@@ -269,13 +344,30 @@ class sitUps(object):
                 mid_point_shoulder_hip_x = shoulder_x
                 mid_point_shoulder_hip_y = hip_y
 
+                mid_point_left_shoulder_hip_x = left_shoulder_x
+                mid_point_left_shoulder_hip_y = left_hip_y
+
+                mid_point_right_shoulder_hip_x = right_shoulder_x
+                mid_point_right_shoulder_hip_y = right_hip_y
                 ## angle of shoudler touching ground
-                angle_stg = self.cosine_theorem((hip_x, hip_y), (mid_point_shoulder_hip_x, mid_point_shoulder_hip_y),
-                                           (shoulder_x, shoulder_y))
+                if np.absolute(left_shoulder_conf - right_shoulder_conf) <=0.2:
+                    left_angle_stg = self.cosine_theorem((left_hip_x, left_hip_y), (mid_point_left_shoulder_hip_x, mid_point_left_shoulder_hip_y),
+                                           (left_shoulder_x, left_shoulder_y))
+                    right_angle_stg = self.cosine_theorem((right_hip_x, right_hip_y),
+                                                         (mid_point_right_shoulder_hip_x, mid_point_right_shoulder_hip_y),
+                                                         (right_shoulder_x, right_shoulder_y))
+
+                else:
+                    angle_stg = self.cosine_theorem((hip_x, hip_y), (mid_point_shoulder_hip_x, mid_point_shoulder_hip_y),
+                                            (shoulder_x, shoulder_y))
 
                 ## angle of shoulder, wrist, elbow
+                if left_elbow_conf >= right_elbow_conf:
+                    angle_sew = self.cosine_theorem((left_elbow_x, left_elbow_y), (left_shoulder_x, left_shoulder_y), (left_wrist_x, left_wrist_y))
+                else:
+                    angle_sew = self.cosine_theorem((right_elbow_x, right_elbow_y), (right_shoulder_x, right_shoulder_y), (right_wrist_x, right_wrist_y))
 
-                angle_sew = self.cosine_theorem((elbow_x, elbow_y), (shoulder_x, shoulder_y), (wrist_x, wrist_y))
+                #angle_sew = self.cosine_theorem((elbow_x, elbow_y), (shoulder_x, shoulder_y), (wrist_x, wrist_y))
 
                 ## angle_of elbow, wrist , ear
                 angle_ewe = self.cosine_theorem((wrist_x, wrist_y), (ear_x, ear_y), (elbow_x, elbow_y))
@@ -288,7 +380,10 @@ class sitUps(object):
 
                 avg_conf = (left_ankle_conf + right_ankle_conf) / 2
 
-                return angle_stg, angle_sew, angle_hma_start, avg_conf
+                if np.absolute(left_shoulder_conf - right_shoulder_conf) <= 0.2:
+                    return left_angle_stg, right_angle_stg, angle_sew, angle_hma_start, avg_conf
+                else:
+                    return angle_stg, 0, angle_sew, angle_hma_start, avg_conf
 
             elif flag == 'stardard':
 
@@ -299,13 +394,35 @@ class sitUps(object):
                 angle_hks = self.cosine_theorem((hip_x, hip_y), (knee_x, knee_y), (shoulder_x, shoulder_y))
 
                 ## the distance
-                x_distance_ankle_knee = self.x_distance(knee_x, ankle_x)
-                x_distance_elblow_knee = self.x_distance(elbow_x, knee_x)
 
-                if x_distance_elblow_knee <= args.ratio_distance * x_distance_ankle_knee:
-                    ratio_between_distance = True
+                if np.absolute(left_elbow_conf - right_elbow_conf) > 0.5:
+
+                    x_distance_ankle_knee = self.x_distance(knee_x, ankle_x)
+                    x_distance_elblow_knee = self.x_distance(elbow_x, knee_x)
+                    print('x_distance_ankle_knee',x_distance_ankle_knee)
+                    print('x_distance_elblow_knee',x_distance_elblow_knee)
+
+                    if x_distance_elblow_knee <= args.ratio_distance * x_distance_ankle_knee:
+                        ratio_between_distance = True
+                    else:
+                        ratio_between_distance = False
                 else:
-                    ratio_between_distance = False
+                    x_distance_ankle_knee = self.x_distance(knee_x, ankle_x)
+                    x_distance_left_elbow_knee = self.x_distance(left_elbow_x, knee_x)
+                    x_distance_right_elbow_knee = self.x_distance(right_elbow_x, knee_x)
+                    print('x_distance_ankle_knee', x_distance_ankle_knee)
+                    print('x_distance_left_elbow_knee',x_distance_left_elbow_knee)
+                    print('x_distance_right_elbow_knee',x_distance_right_elbow_knee)
+                    if x_distance_left_elbow_knee <= args.ratio_distance * x_distance_ankle_knee and \
+                            x_distance_right_elbow_knee <= args.ratio_distance * x_distance_ankle_knee:
+                        ratio_between_distance = True
+                    else:
+                        ratio_between_distance = False
+
+                # if x_distance_elblow_knee <= args.ratio_distance * x_distance_ankle_knee:
+                #     ratio_between_distance = True
+                # else:
+                #     ratio_between_distance = False
                 # print('x_distance_ankle_knee', x_distance_ankle_knee)
                 # print('x_distance_elblow_knee', x_distance_elblow_knee)
 
@@ -315,16 +432,30 @@ class sitUps(object):
                 angle_hma_standard = self.cosine_theorem((ankle_x, ankle_y), (hip_x, hip_y),
                                                     (mid_point_ankle_hip_x, mid_point_ankle_hip_y))
 
-                if hip_x > knee_x:
-                    x_diff_elbow_knee = elbow_x - knee_x
+                if np.absolute(left_elbow_conf - right_elbow_conf) > 0.5:
+                    if hip_x > knee_x:
+                        x_diff_elbow_knee = elbow_x - knee_x
+                    else:
+                        x_diff_elbow_knee = knee_x - elbow_x
+                    x_diff_bool = True if x_diff_elbow_knee <= 0 else False
                 else:
-                    x_diff_elbow_knee = knee_x - elbow_x
+                    if hip_x > knee_x:
+                        x_diff_left_elbow_knee = left_elbow_x - knee_x
+                        x_diff_right_elbow_knee = right_elbow_x - knee_x
+                    else:
+                        x_diff_left_elbow_knee = knee_x- left_elbow_x
+                        x_diff_right_elbow_knee = knee_x - right_elbow_x
+                    #print('x_diff_left_elbow_knee',x_diff_left_elbow_knee)
+                    #print('x_diff_right_elbow_knee',x_diff_right_elbow_knee)
 
+                    x_diff_bool = True if (x_diff_left_elbow_knee <= 0 and x_diff_right_elbow_knee <= 0) else False
+
+                print('x_diff_bool', x_diff_bool)
                 ### confidence of ankle,knee
                 #avg_conf = (left_knee_conf + right_knee_x + left_ankle_conf + right_ankle_conf) / 4
                 avg_conf = (left_ankle_conf + right_ankle_conf) / 2
-                return ratio_between_distance, angle_hks, angle_hma_standard, x_diff_elbow_knee, avg_conf
+                return ratio_between_distance, angle_hks, angle_hma_standard, x_diff_bool, avg_conf
 
-        except IndexError:
+        except (IndexError, ValueError):
             print('视频中没有人物出现，请把摄像头对准人')
             return "nobody"
