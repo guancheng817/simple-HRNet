@@ -76,7 +76,7 @@ class PyQtMainEntry(QMainWindow, Ui_Mainwindow, sitUps):
 
         # if self.flag:
         #     self.Action()
-        self.btnOpenCamera.setEnabled(False)
+        #self.btnOpenCamera.setEnabled(False)
         while True:
             if self.flag:
                 self.Action()
