@@ -88,7 +88,8 @@ class sitUps(object):
             # print('hks',args.hks)
             # print('raise_feet', args.raise_feet)
             # print('ratio_distance',args.ratio_distance)
-
+            # print(' ')
+            print('version_8')
             # angle_stg, angle_sew, angle_hma_start, avg_conf = self.cal_angle(pts, 'start', args)
             # diff_two_frame_rasie_feet = angle_hma_start - first_raise_feet
             if self.cal_angle(pts, 'start', args) == "nobody":
@@ -107,10 +108,10 @@ class sitUps(object):
                 #     continue
                 #self.text_ready = '请双肩着地，双手抱头'
                 left_angle_stg, right_angle_stg, angle_sew, angle_hma_start, avg_conf = self.cal_angle(pts, 'start',args)
-                print('left_stg',left_angle_stg)
-                print('right_stg', right_angle_stg)
+                # print('left_stg',left_angle_stg)
+                # print('right_stg', right_angle_stg)
                 if (left_angle_stg <= args.stg) and (right_angle_stg <= args.stg ):# and angle_sew <= args.sew and angle_hma_start <= 10:
-                    self.text_elbow_touch_knee = '双肩已着地，请双肘触膝'
+                    self.text_elbow_touch_knee = '双肩已着地   请双肘触膝'
                     self.state_box_text = self.text_elbow_touch_knee
                     stg_flag = True
                     start = True
@@ -119,15 +120,15 @@ class sitUps(object):
                 #     start = False
 
             #print('angle_hma_start:', angle_hma_start)
-            print('num of frame', num_of_frame)
-            print('pts',pts)
-            print(' ')
+            #print('num of frame', num_of_frame)
+            #print('pts',pts)
+
             if not end:
 
                 left_angle_stg, right_angle_stg, angle_sew, angle_hma_start, avg_conf = self.cal_angle(pts, 'start', args)
                 if angle_sew >= args.sew and arm_irregular >=3:
-                    self.error_box_text = '手部动作不规范，请双手抱头'
-                    self.state_box_text = '动作不规范，请重新开始动作'
+                    self.error_box_text = '手部动作不规范'
+                    self.state_box_text = '动作不规范,请重新开始动作'
                     # end = False
                     start = False
                     self.text = "count_{}".format(self.num_of_std)
@@ -144,8 +145,8 @@ class sitUps(object):
 
 
                 if angle_hma_start >= args.raise_feet and feet_irregular >=5:
-                    self.error_box_text = '脚部动作不规范'
-                    self.state_box_text = '脚部不规范，请重新开始动作'
+                    self.error_box_text = '动作不规范'
+                    self.state_box_text = '动作不规范，请重新开始动作'
                     start = False
                     self.text = "count_{}".format(self.num_of_std)
                     self.frame = self.count(self.frame, self.text, num_of_frame, root, video)
@@ -160,9 +161,9 @@ class sitUps(object):
                     feet_irregular = 0
 
             ratio_between_distance, angle_hks, angle_hma_standard, x_diff_bool, avg_conf= self.cal_angle(pts, 'stardard',args)
-            print('num of frame', num_of_frame)
-            print('pts',pts)
-            print(' ')
+            # print('num of frame', num_of_frame)
+            # print('pts',pts)
+            # print(' ')
 
             if avg_conf < 0.5:
                 start = False
@@ -180,7 +181,7 @@ class sitUps(object):
                 self.text = "count_{}".format(self.num_of_std)
                 self.frame = self.count(self.frame, self.text , num_of_frame, root, video)
                 self.num_of_std += 1
-                self.state_box_text = '完整动作规范,请开始下一个动作'
+                self.state_box_text = '完成动作规范,请开始下一个'
                 self.error_box_text = ' '
                 start = False
                 end = True
@@ -208,7 +209,7 @@ class sitUps(object):
         shape = frame.shape
         height = shape[0]
         width = shape[1]
-        cv2.putText(frame, text, (int(width / 3), int(height / 15)), cv2.FONT_HERSHEY_PLAIN, 2.0, (0, 0, 255), 2)
+        #cv2.putText(frame, text, (int(width / 3), int(height / 15)), cv2.FONT_HERSHEY_PLAIN, 2.0, (0, 0, 255), 2)
 
         # cv2.imshow('frame.png', frame)
         # k = cv2.waitKey(1)
@@ -399,8 +400,8 @@ class sitUps(object):
 
                     x_distance_ankle_knee = self.x_distance(knee_x, ankle_x)
                     x_distance_elblow_knee = self.x_distance(elbow_x, knee_x)
-                    print('x_distance_ankle_knee',x_distance_ankle_knee)
-                    print('x_distance_elblow_knee',x_distance_elblow_knee)
+                    # print('x_distance_ankle_knee',x_distance_ankle_knee)
+                    # print('x_distance_elblow_knee',x_distance_elblow_knee)
 
                     if x_distance_elblow_knee <= args.ratio_distance * x_distance_ankle_knee:
                         ratio_between_distance = True
@@ -410,9 +411,9 @@ class sitUps(object):
                     x_distance_ankle_knee = self.x_distance(knee_x, ankle_x)
                     x_distance_left_elbow_knee = self.x_distance(left_elbow_x, knee_x)
                     x_distance_right_elbow_knee = self.x_distance(right_elbow_x, knee_x)
-                    print('x_distance_ankle_knee', x_distance_ankle_knee)
-                    print('x_distance_left_elbow_knee',x_distance_left_elbow_knee)
-                    print('x_distance_right_elbow_knee',x_distance_right_elbow_knee)
+                    # print('x_distance_ankle_knee', x_distance_ankle_knee)
+                    # print('x_distance_left_elbow_knee',x_distance_left_elbow_knee)
+                    # print('x_distance_right_elbow_knee',x_distance_right_elbow_knee)
                     if x_distance_left_elbow_knee <= args.ratio_distance * x_distance_ankle_knee and \
                             x_distance_right_elbow_knee <= args.ratio_distance * x_distance_ankle_knee:
                         ratio_between_distance = True
@@ -450,7 +451,7 @@ class sitUps(object):
 
                     x_diff_bool = True if (x_diff_left_elbow_knee <= 0 and x_diff_right_elbow_knee <= 0) else False
 
-                print('x_diff_bool', x_diff_bool)
+                # print('x_diff_bool', x_diff_bool)
                 ### confidence of ankle,knee
                 #avg_conf = (left_knee_conf + right_knee_x + left_ankle_conf + right_ankle_conf) / 4
                 avg_conf = (left_ankle_conf + right_ankle_conf) / 2

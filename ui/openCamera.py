@@ -19,48 +19,49 @@ class Ui_Mainwindow(object):
         self.centralwidget.setObjectName("centralwidget")
         
         ###
-        self.btnOpenCamera = QtWidgets.QPushButton(self.centralwidget)
-        self.btnOpenCamera.setGeometry(QtCore.QRect(130, 470, 99, 27))
-        self.btnOpenCamera.setObjectName("btnOpenCamera")
+        # self.btnOpenCamera = QtWidgets.QPushButton(self.centralwidget)
+        # self.btnOpenCamera.setGeometry(QtCore.QRect(130, 470, 99, 27))
+        # self.btnOpenCamera.setObjectName("btnOpenCamera")
 
         ## start testing 
         self.starting = QtWidgets.QPushButton(self.centralwidget)
-        self.starting.setGeometry(QtCore.QRect(330, 470, 99, 27))
+        self.starting.setGeometry(QtCore.QRect(360, 500, 99, 27))
         self.starting.setObjectName("btnOpenCamera")
 
         ## close
-        self.btnClose = QtWidgets.QPushButton(self.centralwidget)
-        self.btnClose.setGeometry(QtCore.QRect(330, 500, 99, 27))
-        self.btnClose.setObjectName("btnOpenCamera")
+        # self.btnClose = QtWidgets.QPushButton(self.centralwidget)
+        # self.btnClose.setGeometry(QtCore.QRect(330, 500, 99, 27))
+        # self.btnClose.setObjectName("btnOpenCamera")
 
-        ## reset
+        ## stop
         self.reset = QtWidgets.QPushButton(self.centralwidget)
-        self.reset.setGeometry(QtCore.QRect(500, 470, 99, 27))
+        self.reset.setGeometry(QtCore.QRect(531, 500, 99, 27))
         self.reset.setObjectName("btnOpenCamera")
 
 
         ## connect two windows
         self.toolButton = QtWidgets.QToolButton(self.centralwidget)
-        self.toolButton.setGeometry(QtCore.QRect(10, 100, 101, 25))
+        self.toolButton.setGeometry(QtCore.QRect(160, 500, 99, 27))
         self.toolButton.setObjectName("toolButton")
 
         ## show video
         self.labelCamera = QtWidgets.QLabel(self.centralwidget)
-        self.labelCamera.setGeometry(QtCore.QRect(160, 90, 471, 341))
+        self.labelCamera.setGeometry(QtCore.QRect(140, 80, 500, 400))
+        #self.labelCamera.setGeometry(QtCore.QRect(160, 90, 471, 341))
         self.labelCamera.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
         self.labelCamera.setWordWrap(True)
         self.labelCamera.setObjectName("labelCamera")
 
         ## timer
         self.timer_box = QtWidgets.QLabel(self.centralwidget)
-        self.timer_box.setGeometry(QtCore.QRect(30, 30, 81, 50))
+        self.timer_box.setGeometry(QtCore.QRect(30, 30, 90, 50))
         self.timer_box.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignTop)
         self.timer_box.setWordWrap(True)
         self.timer_box.setObjectName("计时器")
 
         ## counter
         self.counter_box = QtWidgets.QLabel(self.centralwidget)
-        self.counter_box.setGeometry(QtCore.QRect(230, 30, 81, 50))
+        self.counter_box.setGeometry(QtCore.QRect(230, 30, 90, 50))
         self.counter_box.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignTop)
         self.counter_box.setWordWrap(True)
         self.counter_box.setObjectName("计数器")
@@ -91,25 +92,25 @@ class Ui_Mainwindow(object):
 
         self.retranslateUi(mainwindow)
         self.starting.clicked.connect(mainwindow.start_testing)
-        self.btnOpenCamera.clicked.connect(mainwindow.btnOpenCamera_Clicked)
+        #self.btnOpenCamera.clicked.connect(mainwindow.btnOpenCamera_Clicked)
         self.reset.clicked.connect(mainwindow.Reset)
-        self.btnClose.clicked.connect(mainwindow.Close)
+        #self.btnClose.clicked.connect(mainwindow.Close)
         QtCore.QMetaObject.connectSlotsByName(mainwindow)
 
     def retranslateUi(self, mainwindow):
         _translate = QtCore.QCoreApplication.translate
-        mainwindow.setWindowTitle(_translate("mainwindow", "MainWindow"))
+        mainwindow.setWindowTitle(_translate("mainwindow", "SAFLIGHT人工智能仰卧起坐测试仪"))
         self.starting.setText(_translate("mainwindow", "开始"))
-        self.btnOpenCamera.setText(_translate("mainwindow", "打开摄像头"))
-        self.reset.setText(_translate("mainwindow", "重置"))
+        #self.btnOpenCamera.setText(_translate("mainwindow", "打开摄像头"))
+        self.reset.setText(_translate("mainwindow", "停止"))
         self.labelCamera.setText(_translate("mainwindow", "画布显示"))
         self.timer_box.setText(_translate("mainwindow", "计时器"))
         self.counter_box.setText(_translate("mainwindow", "计数器"))
         self.state_box.setText(_translate("mainwindow", "状态提示"))
         self.error_box.setText(_translate("mainwindow", "错误提示"))
-        self.btnClose.setText(_translate("mainwindow","关闭"))
+        #self.btnClose.setText(_translate("mainwindow","关闭"))
         # self.btnArgs.setText(_translate("mainwindow", "set arg"))
-        self.toolButton.setText(_translate("mainwindow", "参数设置"))
+        self.toolButton.setText(_translate("mainwindow", "设置"))
 
 class Ui_Dialog(object):
     def setupUi(self, Dialog):
@@ -146,11 +147,11 @@ class Ui_Dialog(object):
         self.label_5.setGeometry(QtCore.QRect(20, 190, 121, 21))
         self.label_5.setObjectName("label_5")
         self.saveButton = QtWidgets.QPushButton(Dialog)
-        self.saveButton.setGeometry(QtCore.QRect(60, 240, 80, 26))
+        self.saveButton.setGeometry(QtCore.QRect(170, 240, 80, 26))
         self.saveButton.setObjectName("saveButton")
-        self.closeButton = QtWidgets.QPushButton(Dialog)
-        self.closeButton.setGeometry(QtCore.QRect(210, 240, 80, 26))
-        self.closeButton.setObjectName("closeButton")
+        # self.closeButton = QtWidgets.QPushButton(Dialog)
+        # self.closeButton.setGeometry(QtCore.QRect(210, 240, 80, 26))
+        # self.closeButton.setObjectName("closeButton")
         # self.stg = QtWidgets.QLineEdit(Dialog)
         # self.stg.setGeometry(QtCore.QRect(30, 60, 61, 26))
         # self.stg.setObjectName("lineEdit")
@@ -189,7 +190,7 @@ class Ui_Dialog(object):
         self.raiseFeetText.textChanged.connect(Dialog.getArgs)
         self.hksText.textChanged.connect(Dialog.getArgs)
         self.ratioDistanceText.textChanged.connect(Dialog.getArgs)
-        self.closeButton.clicked.connect(Dialog.cancel)
+        #self.closeButton.clicked.connect(Dialog.cancel)
         self.saveButton.clicked.connect(Dialog.save)
         QtCore.QMetaObject.connectSlotsByName(Dialog)
 
@@ -201,5 +202,5 @@ class Ui_Dialog(object):
         self.label_4.setText(_translate("Dialog", "hks:(60, 80)"))
         self.label_5.setText(_translate("Dialog", "ratio_dis:(0.2, 0.4)"))
         self.saveButton.setText(_translate("Dialog", "保存"))
-        self.closeButton.setText(_translate("Dialog", "关闭"))
+        #self.closeButton.setText(_translate("Dialog", "关闭"))
         Dialog.setWindowTitle(_translate("Dialog", "Dialog"))
