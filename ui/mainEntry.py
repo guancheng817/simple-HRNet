@@ -37,37 +37,36 @@ class PyQtMainEntry(QMainWindow, Ui_Mainwindow, sitUps):
         self.starting_button = False
         self.reset_button = False
         self.flag = False  ## 计时开始 flag
-
     def start_testing(self):
         '''
         start testing
         '''
-        if self.btnOpenCamera.isEnabled():
-            QtWidgets.QMessageBox.warning(self, "警告", "请先打开摄像头", QtWidgets.QMessageBox.Cancel)
+        # if self.btnOpenCamera.isEnabled():
+        #     QtWidgets.QMessageBox.warning(self, "警告", "请先打开摄像头", QtWidgets.QMessageBox.Cancel)
 
-        else:
-            self.starting_button = True
-            self.starting.setEnabled(False)
-            #self.btnOpenCamera.setEnabled(False)
-            self.flag = True
-            # if self.reset_button:
-            #     self.count_down = args.timer
-            self.count_down = args.timer
+        # else:
+        self.starting_button = True
+        self.starting.setEnabled(False)
+        #self.btnOpenCamera.setEnabled(False)
+        self.flag = True
+        # if self.reset_button:
+        #     self.count_down = args.timer
+        self.count_down = args.timer
 
     def Reset(self):
         '''
         reset and restart
         :return:
         '''
-        if self.btnOpenCamera.isEnabled():
-            QtWidgets.QMessageBox.warning(self, "警告", "请先打开摄像头", QtWidgets.QMessageBox.Cancel)
-        else:
-            self.starting_button = False
-            self.starting.setEnabled(True)
-            #self.btnOpenCamera.setEnabled(True)
-            self.Counter(num_of_std=' ')  # counter clear
-            self.timer_box.setText(' ')  # timer clear
-            self.time.stop()
+        # if self.btnOpenCamera.isEnabled():
+        #     QtWidgets.QMessageBox.warning(self, "警告", "请先打开摄像头", QtWidgets.QMessageBox.Cancel)
+        #else:
+        self.starting_button = False
+        self.starting.setEnabled(True)
+        #self.btnOpenCamera.setEnabled(True)
+        self.Counter(num_of_std=' ')  # counter clear
+        self.timer_box.setText(' ')  # timer clear
+        self.time.stop()
 
     def btnOpenCamera_Clicked(self):
         '''
@@ -105,7 +104,8 @@ class PyQtMainEntry(QMainWindow, Ui_Mainwindow, sitUps):
             QApplication.processEvents()
 
     def Close(self):
-        self.done(0)
+        #self.done(0)
+        os._exit()
 
     def Action(self):
         #print(self.starting.isEnabled())
@@ -142,6 +142,25 @@ class PyQtMainEntry(QMainWindow, Ui_Mainwindow, sitUps):
 
     def Error_Box(self, error_box_text):
         self.error_box.setText(error_box_text)
+
+
+    def closeEvent(self, event):
+        """
+        对MainWindow的函数closeEvent进行重构
+        退出软件时结束所有进程
+        :param event:
+        :return:
+        """
+        reply = QtWidgets.QMessageBox.question(self,
+                                               '本程序',
+                                               "是否要退出程序？",
+                                               QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+                                               QtWidgets.QMessageBox.No)
+        if reply == QtWidgets.QMessageBox.Yes:
+            event.accept()
+            os._exit(0)
+        else:
+            event.ignore()
 
     # def setArgs(self):
     #     dialog = QtWidgets.QDialog()
@@ -233,4 +252,7 @@ if __name__ == "__main__":
     btn.clicked.connect(child.show)
 
     window.show()
+    window.btnOpenCamera_Clicked()
+
     sys.exit(app.exec_())
+
