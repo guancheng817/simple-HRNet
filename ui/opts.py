@@ -23,13 +23,13 @@ def parse_opts():
                         action="store_true")  # see https://pypi.org/project/vidgear/
     parser.add_argument("--device", help="device to be used (default: cuda, if available)", type=str, default=None)
     parser.add_argument("--save_root", "-s", help="the path to save", type=str, default='/mnt/simple-HRNet/frames')
-
+    parser.add_argument("--save_dir", help="the path to dir for saving", type=str, default='sit_ups_v1')
     parser.add_argument("--stg", help="angle of the shoulder touches ground", type=int, default=5)
     parser.add_argument("--sew", help="angle of shoulder,elbow and wrist", type=int, default=90)
-    parser.add_argument("--raise_feet", help="angle of raise feet", type=int, default=5)
+    parser.add_argument("--raise_feet", help="angle of raise feet", type=int, default=10)
     parser.add_argument("--hks", help="angle of hip, knee and shoulder ", type=int, default=70)
-    parser.add_argument("--ratio_distance", help="the ratio between x_distance_elblow_knee and x_distance_ankle_knee", type=int, default=0.25)
-    parser.add_argument("--timer", help="time of count", type=int, default=5)
+    parser.add_argument("--ratio_distance", help="the ratio between x_distance_elblow_knee and x_distance_ankle_knee", type=int, default=0.35)
+    parser.add_argument("--timer", help="time of count", type=int, default=240)
 
     args = parser.parse_args()
 
