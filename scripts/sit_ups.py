@@ -90,14 +90,31 @@ class sitUps(object):
             # print('ratio_distance',args.ratio_distance)
             # print(' ')
             print('version_8')
+
             # angle_stg, angle_sew, angle_hma_start, avg_conf = self.cal_angle(pts, 'start', args)
             # diff_two_frame_rasie_feet = angle_hma_start - first_raise_feet
             if self.cal_angle(pts, 'start', args) == "nobody":
                 self.text = "count_{}".format(self.num_of_std)
                 self.frame = self.count(self.frame, self.text, num_of_frame, root, video)
                 num_of_frame += 1
-                yield (' ', ' ', self.frame, self.num_of_std)
+                self.error_box_text = '未检测到人体'
+                self.state_box_text = ' '
+                yield (self.state_box_text, self.error_box_text, self.frame, self.num_of_std)
                 continue
+
+            left_angle_stg, right_angle_stg, angle_sew, angle_hma_start, avg_conf = self.cal_angle(pts, 'start', args)
+
+            if avg_conf < 0.5:
+                start = False
+                self.text = "count_{}".format(self.num_of_std)
+                self.frame = self.count(self.frame , self.text, num_of_frame, root, video)
+                num_of_frame += 1
+                self.error_box_text = '人体检测不完整'
+                self.state_box_text = ' '
+                num_of_frame += 1
+                yield (self.state_box_text, self.error_box_text, self.frame, self.num_of_std)
+                continue
+
 
             if not start:
                 # if self.cal_angle(pts, 'start', args) == "nobody":
@@ -107,9 +124,8 @@ class sitUps(object):
                 #     yield (' ', ' ', self.frame, self.num_of_std)
                 #     continue
                 #self.text_ready = '请双肩着地，双手抱头'
-                left_angle_stg, right_angle_stg, angle_sew, angle_hma_start, avg_conf = self.cal_angle(pts, 'start',args)
-                # print('left_stg',left_angle_stg)
-                # print('right_stg', right_angle_stg)
+                #left_angle_stg, right_angle_stg, angle_sew, angle_hma_start, avg_conf = self.cal_angle(pts, 'start',args)
+
                 if (left_angle_stg <= args.stg) and (right_angle_stg <= args.stg ):# and angle_sew <= args.sew and angle_hma_start <= 10:
                     self.text_elbow_touch_knee = '双肩已着地   请双肘触膝'
                     self.state_box_text = self.text_elbow_touch_knee
@@ -125,8 +141,8 @@ class sitUps(object):
 
             if not end:
 
-                left_angle_stg, right_angle_stg, angle_sew, angle_hma_start, avg_conf = self.cal_angle(pts, 'start', args)
-                if angle_sew >= args.sew and arm_irregular >=3:
+                #left_angle_stg, right_angle_stg, angle_sew, angle_hma_start, avg_conf = self.cal_angle(pts, 'start', args)
+                if angle_sew >= args.sew and arm_irregular >= 3:
                     self.error_box_text = '手部动作不规范'
                     self.state_box_text = '动作不规范,请重新开始动作'
                     # end = False
@@ -139,7 +155,7 @@ class sitUps(object):
                     yield (self.state_box_text, self.error_box_text, self.frame, self.num_of_std)
                     continue
                 elif angle_sew >= args.sew and arm_irregular < 3:
-                    arm_irregular+=1
+                    arm_irregular += 1
                 elif angle_sew < args.sew:
                     arm_irregular = 0
 
@@ -165,16 +181,16 @@ class sitUps(object):
             # print('pts',pts)
             # print(' ')
 
-            if avg_conf < 0.5:
-                start = False
-                self.text = "count_{}".format(self.num_of_std)
-                self.frame = self.count(self.frame , self.text, num_of_frame, root, video)
-                num_of_frame += 1
-                self.error_box_text = '部分关键点未检测到'
-                self.state_box_text = ' '
-                num_of_frame += 1
-                yield (self.state_box_text, self.error_box_text, self.frame, self.num_of_std)
-                continue
+            # if avg_conf < 0.5:
+            #     start = False
+            #     self.text = "count_{}".format(self.num_of_std)
+            #     self.frame = self.count(self.frame , self.text, num_of_frame, root, video)
+            #     num_of_frame += 1
+            #     self.error_box_text = '人体检测不完整'
+            #     self.state_box_text = ' '
+            #     num_of_frame += 1
+            #     yield (self.state_box_text, self.error_box_text, self.frame, self.num_of_std)
+            #     continue
 
             #raise_feet = False if np.absolute(angle_hma_start - angle_hma_standard) <= args.raise_feet else True
             if angle_hks <= args.hks and start and (ratio_between_distance or x_diff_bool):
