@@ -30,7 +30,8 @@ def parse_opts():
     parser.add_argument("--hks", help="angle of hip, knee and shoulder ", type=int, default=70)
     parser.add_argument("--ratio_distance", help="the ratio between x_distance_elblow_knee and x_distance_ankle_knee", type=int, default=0.35)
     parser.add_argument("--timer", help="time of count", type=int, default=240)
-
+    parser.add_argument('--save', action='store_true', help='If true, save video frames.', default=False)
+    parser.add_argument('--start', action='store_true', help='If true, save from starting.', default=False)
     args = parser.parse_args()
 
     return args

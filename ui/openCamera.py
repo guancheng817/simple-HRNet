@@ -167,7 +167,7 @@ class Ui_Dialog(object):
         self.label_2.setText(_translate("Dialog", "sew:(90, 100)"))
         self.label_3.setText(_translate("Dialog", "raise_feet:(5, 10)"))
         self.label_4.setText(_translate("Dialog", "hks:(60, 80)"))
-        self.label_5.setText(_translate("Dialog", "ratio_dis:(0.2, 0.4)"))
+        self.label_5.setText(_translate("Dialog", "ratio_dis:(0.2, 0.8)"))
         self.saveButton.setText(_translate("Dialog", "保存"))
         #self.closeButton.setText(_translate("Dialog", "关闭"))
         Dialog.setWindowTitle(_translate("Dialog", "Dialog"))

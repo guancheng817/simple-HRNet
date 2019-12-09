@@ -45,6 +45,7 @@ class PyQtMainEntry(QMainWindow, Ui_Mainwindow, sitUps):
         #     QtWidgets.QMessageBox.warning(self, "警告", "请先打开摄像头", QtWidgets.QMessageBox.Cancel)
 
         # else:
+        args.start = True
         self.starting_button = True
         self.starting.setEnabled(False)
         #self.btnOpenCamera.setEnabled(False)
@@ -53,7 +54,7 @@ class PyQtMainEntry(QMainWindow, Ui_Mainwindow, sitUps):
         #     self.count_down = args.timer
         self.count_down = args.timer
 
-    def Reset(self):
+    def Reset(self):  ## stop
         '''
         reset and restart
         :return:
@@ -61,6 +62,7 @@ class PyQtMainEntry(QMainWindow, Ui_Mainwindow, sitUps):
         # if self.btnOpenCamera.isEnabled():
         #     QtWidgets.QMessageBox.warning(self, "警告", "请先打开摄像头", QtWidgets.QMessageBox.Cancel)
         #else:
+        args.start = False
         self.starting_button = False
         self.starting.setEnabled(True)
         #self.btnOpenCamera.setEnabled(True)
@@ -225,7 +227,7 @@ class childWindow(QtWidgets.QDialog, Ui_Dialog):
                 not self.hks.isdigit() or not type(eval(self.ratio_distance)) == float:
                 QtWidgets.QMessageBox.warning(self, "警告", "出现非法字符或者未准确填写参数表", QtWidgets.QMessageBox.Cancel)
             elif not  5<=int(self.stg)<=10 or not 90<=int(self.sew)<=100 or not 5<=int(self.raise_feet)<=10 \
-                or not 60<=int(self.hks)<=80 or not 0.2<=float(self.ratio_distance)<=0.4:
+                or not 60<=int(self.hks)<=80 or not 0.2<=float(self.ratio_distance)<=0.8:
                 QtWidgets.QMessageBox.warning(self, "警告", "请准确填写参数范围", QtWidgets.QMessageBox.Cancel)
             else:
                 args.stg = int(self.stg) if self.stg != '' else args.stg
