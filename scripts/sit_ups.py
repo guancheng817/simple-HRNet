@@ -6,7 +6,8 @@ import cv2
 import torch
 import numpy as np
 from vidgear.gears import CamGear
-
+import math
+#from ui.mainEntry import PyQtMainEntry
 sys.path.insert(1, os.getcwd())
 from SimpleHRNet import SimpleHRNet
 from misc.visualization import draw_points, draw_skeleton, draw_points_and_skeleton, joints_dict
@@ -14,9 +15,10 @@ import time
 
 class sitUps(object):
     # def __init__(self):
-    #     self.error_box_text = ' '
-    #     #self.args = args
-    #     #self.main()
+    # #     self.error_box_text = ' '
+    # #     #self.args = args
+    # #     #self.main()
+    #     self.pyqt = PyQtMainEntry()
 
     def main(self, args):
         if args.device is not None:
@@ -33,15 +35,25 @@ class sitUps(object):
         image_resolution = ast.literal_eval(args.image_resolution)
         has_display = 'DISPLAY' in os.environ.keys() or sys.platform == 'win32'
         has_display = False
+
+        #options = {"CAP_PROP_FRAME_WIDTH ":320, "CAP_PROP_FRAME_HEIGHT":240, "CAP_PROP_FPS ":120}
         if args.filename is not None:
             video = cv2.VideoCapture(args.filename)
             assert video.isOpened()
         else:
             if args.disable_vidgear:
+                print('true')
                 video = cv2.VideoCapture(args.camera_id)
+                video.set(cv2.CAP_PROP_FRAME_WIDTH, 320)
+                video.set(cv2.CAP_PROP_FRAME_HEIGHT, 240)
+                video.set(cv2.CAP_PROP_FPS, args.fps)
+                #print(video.get(cv2.CAP_PROP_FRAME_COUNT))
                 assert video.isOpened()
             else:
-                video = CamGear(args.camera_id).start()
+                video = CamGear(source=args.camera_id).start()
+                #video = CamGear(source=args.camera_id).start()
+
+        #print('fps', video.get(cv2.CAP_PROP_FPS))
 
         model = SimpleHRNet(
             args.hrnet_c,
@@ -58,6 +70,7 @@ class sitUps(object):
         self.num_of_std = 0
         self.error_box_text = ' '
         self.state_box_text = ' '
+        self.cnt = 0
         stg_flag = False
         start = False
         end = False
@@ -65,42 +78,58 @@ class sitUps(object):
 
         if not os.path.exists(root):
             os.mkdir(root)
-
+        start_time = time.time()
         while True:
+            self.cnt += 1
             if args.filename is not None or args.disable_vidgear:
                 ret, self.frame = video.read()
+                #self.frame = cv2.UMat(frame)
                 if not ret:
                     break
             else:
                 self.frame = video.read()
                 if self.frame is None:
                     break
-
+            #print('shape', self.frame.shape)
             pts = model.predict(self.frame)
 
             for i, pt in enumerate(pts):
                 self.frame = draw_points_and_skeleton(self.frame, pt, joints_dict()[args.hrnet_joints_set]['skeleton'], person_index=i,
                                                  points_color_palette='gist_rainbow', skeleton_color_palette='jet',
                                                  points_palette_samples=10)
-
+            # print('start', self.pyqt.starting_button)
             # print('stg',args.stg)
             # print('sew', args.sew)
             # print('hks',args.hks)
             # print('raise_feet', args.raise_feet)
             # print('ratio_distance',args.ratio_distance)
             # print(' ')
-            print('version_9.1')
+            # end_time = time.time()
+            # if (math.floor(end_time*1000) - math.floor(start_time*1000)) >= 1000:
+            #     #frame_rate = 1 / (time.time() - start_time)
+            #     print('frame_rate', self.cnt)
+            #     start_time = end_time
+            #     self.cnt = 0
+            # print('version_9.1')
 
             # angle_stg, angle_sew, angle_hma_start, avg_conf = self.cal_angle(pts, 'start', args)
             # diff_two_frame_rasie_feet = angle_hma_start - first_raise_feet
             if self.cal_angle(pts, 'start', args) == "nobody":
                 self.text = "count_{}".format(self.num_of_std)
                 self.frame = self.count(self.frame, self.text, num_of_frame, root, video, args)
+
                 num_of_frame += 1
                 self.error_box_text = '未检测到人体'
                 self.state_box_text = ' '
                 yield (self.state_box_text, self.error_box_text, self.frame, self.num_of_std)
                 continue
+
+            end_time = time.time()
+            if (math.floor(end_time*1000) - math.floor(start_time*1000)) >= 1000:
+                #frame_rate = 1 / (time.time() - start_time)
+                print('frame_rate', self.cnt)
+                start_time = end_time
+                self.cnt = 0
 
             left_angle_stg, right_angle_stg, angle_sew, angle_hma_start, avg_conf = self.cal_angle(pts, 'start', args)
 
@@ -235,12 +264,13 @@ class sitUps(object):
         #     else:
         #         video.stop()
         #     os._exit()
-        print('start', args.start)
+        #print('start', args.start)
         if args.save and args.start:
             cv2.imwrite(root + '/frames_{:0>4}.png'.format(num_of_frame), frame)
         return frame
 
-
+    def output(self, frame):
+        pass
     def cosine_theorem(self, p1, p2, p3):
         vec_p1_to_p2 = np.array((p1[0] - p2[0], p1[1] - p2[1]))
         vec_p1_to_p3 = np.array((p1[0] - p3[0], p1[1] - p3[1]))

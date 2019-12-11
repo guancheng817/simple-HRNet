@@ -13,9 +13,9 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from openCamera import Ui_Mainwindow, Ui_Dialog
 from opts import parse_opts
 
-class PyQtMainEntry(QMainWindow, Ui_Mainwindow, sitUps):
+class PyQtMainEntry(QMainWindow, Ui_Mainwindow):
     def __init__(self, args):
-        super().__init__()
+        super(PyQtMainEntry, self).__init__()
         # self.main_ui = Ui_Mainwindow()
         # self.main_ui.setupUi(self)
         self.setupUi(self)
@@ -34,7 +34,7 @@ class PyQtMainEntry(QMainWindow, Ui_Mainwindow, sitUps):
         # self.timer_open_camera = QtCore.QTimer(self)
         # self.timer_open_camera.timeout.connect(self._queryFrame)
         # self.timer_open_camera.setInterval(30)
-        self.starting_button = False
+        #self.starting_button = False
         self.reset_button = False
         self.flag = False  ## 计时开始 flag
     def start_testing(self):
@@ -74,7 +74,9 @@ class PyQtMainEntry(QMainWindow, Ui_Mainwindow, sitUps):
         '''
         打开和关闭摄像头
         '''
-        frame_generator = self.main(self.args)
+        #frame_generator = self.main(self.args)
+        situp = sitUps()
+        frame_generator = situp.main(self.args)
 
         # if self.flag:
         #     self.Action()

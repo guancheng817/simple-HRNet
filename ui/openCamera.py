@@ -10,6 +10,8 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QPushButton
 
 class Ui_Mainwindow(object):
+    def __init__(self):
+        self.starting_button = False
     def setupUi(self, mainwindow):
         mainwindow.setObjectName("mainwindow")
         mainwindow.setEnabled(True)

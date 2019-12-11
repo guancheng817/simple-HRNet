@@ -5,10 +5,10 @@ def parse_opts():
     parser.add_argument("--camera_id", "-d", help="open the camera with the specified id", type=int, default=0)
     parser.add_argument("--filename", "-f", help="open the specified video (overrides the --camera_id option)",
                         type=str, default=None)
-    parser.add_argument("--hrnet_c", "-c", help="hrnet parameters - number of channels", type=int, default=48)
+    parser.add_argument("--hrnet_c", "-c", help="hrnet parameters - number of channels", type=int, default=32)
     parser.add_argument("--hrnet_j", "-j", help="hrnet parameters - number of joints", type=int, default=17)
     parser.add_argument("--hrnet_weights", "-w", help="hrnet parameters - path to the pretrained weights",
-                        type=str, default="/mnt/simple-HRNet/pretrain_models/pytorch/pose_coco/pose_hrnet_w48_384x288.pth")
+                        type=str, default="/mnt/simple-HRNet/pretrain_models/pytorch/pose_coco/pose_hrnet_w32_384x288.pth")
     parser.add_argument("--hrnet_joints_set",
                         help="use the specified set of joints ('coco' and 'mpii' are currently supported)",
                         type=str, default="coco")
@@ -17,7 +17,7 @@ def parse_opts():
                         help="disable the multiperson detection (YOLOv3 or an equivalen detector is required for"
                              "multiperson detection)",
                         action="store_true")
-    parser.add_argument("--max_batch_size", help="maximum batch size used for inference", type=int, default=128)
+    parser.add_argument("--max_batch_size", help="maximum batch size used for inference", type=int, default=4)
     parser.add_argument("--disable_vidgear",
                         help="disable vidgear (which is used for slightly better realtime performance)",
                         action="store_true")  # see https://pypi.org/project/vidgear/
@@ -32,6 +32,7 @@ def parse_opts():
     parser.add_argument("--timer", help="time of count", type=int, default=240)
     parser.add_argument('--save', action='store_true', help='If true, save video frames.', default=False)
     parser.add_argument('--start', action='store_true', help='If true, save from starting.', default=False)
+    parser.add_argument("--fps", help="frame rate", type=int, default=10)
     args = parser.parse_args()
 
     return args
