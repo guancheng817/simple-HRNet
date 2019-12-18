@@ -101,7 +101,7 @@ class Ui_Mainwindow(object):
 
     def retranslateUi(self, mainwindow):
         _translate = QtCore.QCoreApplication.translate
-        mainwindow.setWindowTitle(_translate("mainwindow", "SAFLIGHT人工智能仰卧起坐测试仪"))
+        mainwindow.setWindowTitle(_translate("mainwindow", "思迈科技人工智能仰卧起坐测试仪"))
         self.starting.setText(_translate("mainwindow", "开始"))
         #self.btnOpenCamera.setText(_translate("mainwindow", "打开摄像头"))
         self.reset.setText(_translate("mainwindow", "停止"))

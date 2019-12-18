@@ -12,7 +12,8 @@ from PyQt5.QtWidgets import QFileDialog, QMainWindow, QApplication,QPushButton
 from PyQt5 import QtCore, QtGui, QtWidgets
 from openCamera import Ui_Mainwindow, Ui_Dialog
 from opts import parse_opts
-
+from PIL import Image, ImageDraw, ImageFont
+import numpy
 class PyQtMainEntry(QMainWindow, Ui_Mainwindow):
     def __init__(self, args):
         super(PyQtMainEntry, self).__init__()
@@ -37,6 +38,8 @@ class PyQtMainEntry(QMainWindow, Ui_Mainwindow):
         #self.starting_button = False
         self.reset_button = False
         self.flag = False  ## 计时开始 flag
+
+        self.count = 0
     def start_testing(self):
         '''
         start testing
@@ -92,11 +95,12 @@ class PyQtMainEntry(QMainWindow, Ui_Mainwindow):
                 self.num_of_before_click = num_of_std
             else:
                 state_box_text, error_box_text, self.frame, num_of_std = next(frame_generator)
+
                 num_of_std = num_of_std - self.num_of_before_click
                 self.State_Box(state_box_text)
                 self.Error_Box(error_box_text)
                 self.Counter(num_of_std)
-
+                self.saveImage(state_box_text, error_box_text, num_of_std, self.frame)
 
             img_rows, img_cols, channels = self.frame.shape
             bytesPerLine = channels * img_cols
@@ -165,7 +169,30 @@ class PyQtMainEntry(QMainWindow, Ui_Mainwindow):
             os._exit(0)
         else:
             event.ignore()
+    def saveImage(self, state_text, error_text, num_of_std, frame):
+        root = os.path.join(args.save_root, args.save_dir)
+        shape = frame.shape
+        height = shape[0]
+        width = shape[1]
+        b, g, r, a =  0,255,0,0
 
+        fontpath = "./ui/font_FILES/simsun.ttc"  # <== 这里是宋体路径
+        font = ImageFont.truetype(fontpath, 20)
+        img_pil = Image.fromarray(frame)
+        draw = ImageDraw.Draw(img_pil)
+        draw.text((50, 80), str(num_of_std), font=font, fill=(b, g, r, a))
+        draw.text((150, 80), state_text, font=font, fill=(b, g, r, a))
+        draw.text((450, 80), error_text, font=font, fill=(b, g, r, a))
+        frame = numpy.array(img_pil)
+
+        #cv2.cvtColor(numpy.asarray(img), cv2.COLOR_RGB2BGR)
+
+        #cv2.putText(frame, str(num_of_std), (50,50), cv2.FONT_HERSHEY_PLAIN, 2.0, (0, 0, 255), 2)
+        # cv2.putText(frame, state_text, (200, 50), cv2.FONT_HERSHEY_PLAIN, 2.0, (0, 0, 255), 2)
+        # cv2.putText(frame, state_text, (400, 50), cv2.FONT_HERSHEY_PLAIN, 2.0, (0, 0, 255), 2)
+        if args.save:
+            cv2.imwrite(root + '/frames_{:0>4}.png'.format(self.count), frame)
+            self.count+=1
     # def setArgs(self):
     #     dialog = QtWidgets.QDialog()
     #     btn = QPushButton("ok", dialog)

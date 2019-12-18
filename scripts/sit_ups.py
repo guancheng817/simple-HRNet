@@ -133,7 +133,7 @@ class sitUps(object):
 
             left_angle_stg, right_angle_stg, angle_sew, angle_hma_start, avg_conf = self.cal_angle(pts, 'start', args)
 
-            if avg_conf < 0.5:
+            if avg_conf < 0.2:
                 start = False
                 self.text = "count_{}".format(self.num_of_std)
                 self.frame = self.count(self.frame , self.text, num_of_frame, root, video, args)
@@ -265,8 +265,8 @@ class sitUps(object):
         #         video.stop()
         #     os._exit()
         #print('start', args.start)
-        if args.save and args.start:
-            cv2.imwrite(root + '/frames_{:0>4}.png'.format(num_of_frame), frame)
+        # if args.save and args.start:
+        #     cv2.imwrite(root + '/frames_{:0>4}.png'.format(num_of_frame), frame)
         return frame
 
     def output(self, frame):
